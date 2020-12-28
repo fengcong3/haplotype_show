@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <!-- Required meta tags -->
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+        <!-- jQuery first, then D3.js, then Bootstrap JS -->
+        <script type="text/javascript" src="https://cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+        <!-- <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.3.1/d3.js"></script> -->
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/6.3.1/d3.js"></script>
+        <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/4.5.0/js/bootstrap.min.js"></script>
+        <!-- Bootstrap CSS -->
+        <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/4.5.0/css/bootstrap.min.css" rel="stylesheet">
+        <link rel="stylesheet" href="../css/common.css">
+        <script type="text/javascript" src="../js/haplotype-plot.js"></script>
+        <script type="text/javascript" src="../js/utils.js"></script>
+        <title>G3RP Haplotypes</title>
+    </head>
+
+    <body>
+        <header class="header">
+            <h2 class="test">G3RP Haplotypes</h2>
+            <div class="navigation left">
+                <a href="./index.html">Home</a>
+                <a href="./index.html">About</a>
+            </div>
+        </header>
+        <main class="main">
+            <div id="haplotype" class="haplotype-warapper">
+                <div class="haplotype-control">
+                    <form action="http://10.2.2.32/search" accept-charset="UTF-8" method="post" class="haplotype-form">
+                        <select name="gene" id="gene" class="gene-select">
+                            <option value="volvo">Gene1</option>
+                            <option value="saab" selected="selected">Gene2</option>
+                            <option value="opel">Gene3</option>
+                            <option value="audi">Gene4</option>
+                        </select>
+                        <input type="submit" name="commit" value="show">
+                    </form>
+                </div>
+                <div class="haplotype-plot">
+                    <div id="d3-plot">
+                    </div>
+                </div>
+                <div class="haplotype-table">
+                    <div class="tbl-header">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Block_no</th>
+                                    <th>Assembly</th>
+                                    <th>Start</th>
+                                    <th>End</th>
+                                    <th>Length</th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                    <div class="tbl-content">
+                        <table>
+                            <tbody>
+                                <tr>
+                                    <td>1</td>
+                                    <td>LongReach Lancer</td>
+                                    <td>40,000,000</td>
+                                    <td>485,000,000</td>
+                                    <td>445,000,000</td>
+                                </tr>
+                                <tr>
+                                    <td>1</td>
+                                    <td>Jagger</td>
+                                    <td>35,000,000</td>
+                                    <td>485,000,000</td>
+                                    <td>450,000,000</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+        <footer>
+            <span>这是footer</span>
+        </footer>
+
+    <script type="text/javascript">
+        let containerId = "d3-plot";
+        let container = document.querySelector("#d3-plot");
+        let response;
+        $.ajax({
+            type: "GET",
+            url: "http://10.2.2.32/cgi-bin/example.json",
+            dataType: "json",
+            async: false,
+            success: function(resData) {
+                response = resData;
+                console.log(resData);
+            },
+            error: function(err) {
+                console.log(err);
+            }
+        });
+        function handleLabel(labelData) {
+            let geneStructure = labelData;
+            let topLabel = [];
+            for (k in geneStructure) {
+                if (geneStructure[k] instanceof Array) {
+                    topLabel.push(geneStructure[k])
+                } else if (geneStructure[k] instanceof Object ) {
+                    for (j in geneStructure[k]) {
+                        if (geneStructure[k][j] instanceof Array) {
+                            topLabel.push(geneStructure[k][j])
+                        }
+                    }
+                }
+            }
+            let sortLabel = [];
+            topLabel.forEach(function (arr, index) {
+                sortLabel.push.apply(sortLabel, arr);
+            });
+            sortLabel.sort();
+            return sortLabel;
+        }
+
+        function segmentLabel(data) {
+            let label = [];
+            let seg = Math.ceil(data / 10);
+            for (let i = 0; i < 11; i++) {
+                label.push(i * seg);
+            }
+            return label;
+        }
+        function handleResData(data) {
+            let temp = {};
+            let geneStructure = data["gene_structure"];
+            let sampleNames = data["sample_name"];
+            let variation = data["variation"];
+            sampleNames.unshift("Var");
+            temp["name"] = sampleNames;
+            temp["start"] = geneStructure["upstream"]["0"];
+            temp["end"] = geneStructure["3p_UTR"]["1"];
+            temp["top_label"] = segmentLabel(temp["end"]);
+            return temp;
+        }
+        
+        let data = handleResData(response);
+        console.log(data);
+        let margin = ({
+            top: 30,
+            right: 10,
+            bottom: 0,
+            left: 30
+        })
+        let height = data.name.length * 25 + margin.top + margin.bottom
+        let width = 960 + margin.left + margin.right
+        
+        let svg = d3.select(container).append("svg").attr("width", width).attr("height", height)
+            .attr("viewBox", [0, 0, width, height]).style("overflow", "visible").attr("cursor", "pointer");
+
+        let x = d3.scaleBand()
+            .domain(data.top_label.map(d => d))
+            .range([margin.left, width - margin.right])
+        let y = d3.scaleBand()
+            .domain(data.name.map(d => d))
+            .range([margin.top, height - margin.bottom])
+            .padding(0.08)
+
+        let xAxis = g => g
+            .attr("transform", `translate(0,${margin.top})`)
+            .attr("class", "top-axis")
+            .call(d3.axisTop(x).ticks(width / 100, "%"))
+            .call(g => g.selectAll(".domain").remove())
+        
+        let yAxis = g => g
+            .attr("transform", `translate(${margin.left},0)`)
+            .attr("class", "left-axis")
+            .call(d3.axisLeft(y).tickSizeOuter(0))
+            .call(g => g.selectAll(".domain").remove())
+
+        svg.append("g")
+            .call(xAxis);
+
+        svg.append("g")
+            .call(yAxis);
+
+        
+    </script>
+    </body>
+</html>
