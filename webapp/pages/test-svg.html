@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <!-- Required meta tags -->
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+        <!-- jQuery first, then D3.js, then Bootstrap JS -->
+        <script type="text/javascript" src="https://cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+        <!-- <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.3.1/d3.js"></script> -->
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/6.3.1/d3.js"></script>
+        <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/4.5.0/js/bootstrap.min.js"></script>
+        <!-- Bootstrap CSS -->
+        <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/4.5.0/css/bootstrap.min.css" rel="stylesheet">
+        <link rel="stylesheet" href="../css/common.css">
+        <script type="text/javascript" src="../js/haplotype-plot.js"></script>
+        <script type="text/javascript" src="../js/utils.js"></script>
+        <title>G3RP Haplotypes</title>
+    </head>
+
+    <body>
+        <header class="header">
+            <h2 class="test">G3RP Haplotypes</h2>
+            <div class="navigation left">
+                <a href="./index.html">Home</a>
+                <a href="./index.html">About</a>
+            </div>
+        </header>
+        <main class="main">
+            <div id="haplotype" class="haplotype-warapper">
+                <div class="haplotype-control">
+                    <form action="http://10.2.2.32/search" accept-charset="UTF-8" method="post" class="haplotype-form">
+                        <select name="gene" id="gene" class="gene-select">
+                            <option value="volvo">Gene1</option>
+                            <option value="saab" selected="selected">Gene2</option>
+                            <option value="opel">Gene3</option>
+                            <option value="audi">Gene4</option>
+                        </select>
+                        <input type="submit" name="commit" value="show">
+                    </form>
+                </div>
+                <div class="haplotype-plot">
+                    <div id="d3-plot">
+                    </div>
+                </div>
+                <div class="haplotype-table">
+                    <div class="tbl-header">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Block_no</th>
+                                    <th>Assembly</th>
+                                    <th>Start</th>
+                                    <th>End</th>
+                                    <th>Length</th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                    <div class="tbl-content">
+                        <table>
+                            <tbody>
+                                <tr>
+                                    <td>1</td>
+                                    <td>LongReach Lancer</td>
+                                    <td>40,000,000</td>
+                                    <td>485,000,000</td>
+                                    <td>445,000,000</td>
+                                </tr>
+                                <tr>
+                                    <td>1</td>
+                                    <td>Jagger</td>
+                                    <td>35,000,000</td>
+                                    <td>485,000,000</td>
+                                    <td>450,000,000</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+        <footer>
+            <span>这是footer</span>
+        </footer>
+
+    <script type="text/javascript">
+        let csvData = getData();
+        // var draw_svg = new HaplotypeGraph({containerId: "d3-plot", data: data});
+
+        let containerId = "d3-plot";
+        let container = document.querySelector("#d3-plot");
+        let str = csvData["data"];
+        let margin = ({
+            top: 30,
+            right: 10,
+            bottom: 0,
+            left: 30
+        })
+        let lineFunctionSeriesIndex = -1;
+        // let str = d3.csvFormat(csvData);
+        let data = d3.csvParse(str, (d, i, columns) => (d3.autoType(d), d.total = d3.sum(columns, c => d[c]), d)).sort((a, b) => b["<10"] / b.total - a["<10"] / a.total)
+        let height = data.length * 25 + margin.top + margin.bottom
+        let width = 960 + margin.left + margin.right
+        
+        let svg = d3.select(container).append("svg").attr("width", width).attr("height", height)
+            .attr("viewBox", [0, 0, width, height]).style("overflow", "visible").attr("cursor", "pointer");
+        //let svg = d3.create("svg").attr("viewBox", [0, 0, width, height]).style("overflow", "visible");
+        let series = d3.stack().keys(data.columns.slice(1)).offset(d3.stackOffsetExpand)(data).map(d => (d.forEach(v => v.key = d.key), d))
+        let x = d3.scaleLinear().range([margin.left, width - margin.right])
+        let y = d3.scaleBand()
+            .domain(data.map(d => d.name))
+            .range([margin.top, height - margin.bottom])
+            .padding(0.08)
+        let color = d3.scaleOrdinal()
+            .domain(series.map(d => d.key))
+            .range(d3.schemeSpectral[series.length])
+            .unknown("#ccc")
+        let formatPercent = d3.format(".1%")
+        let formatValue = x => isNaN(x) ? "N/A" : x.toLocaleString("en")
+        let xAxis = g => g
+            .attr("transform", `translate(0,${margin.top})`)
+            .attr("class", "left-axis")
+            .call(d3.axisTop(x).ticks(width / 100, "%"))
+            .call(g => g.selectAll(".domain").remove())
+        let yAxis = g => g
+            .attr("transform", `translate(${margin.left},0)`)
+            .attr("class", "top-axis")
+            .call(d3.axisLeft(y).tickSizeOuter(0))
+            .call(g => g.selectAll(".domain").remove())
+        svg.append("g")
+            .attr("class", "svg-map")
+            .selectAll("g")
+            .data(series)
+            .enter().append("g")
+            .attr("fill", d => color(d.key))
+            .selectAll("rect")
+            .data(d => d)
+            .join("rect")
+            .attr("x", d => x(d[0]))
+            .attr("y", (d, i) => y(d.data.name))
+            .attr("width", d => x(d[1]) - x(d[0]))
+            .attr("height", y.bandwidth())
+            .append("title")
+            .text(d => `${d.data.name} ${d.key}${formatPercent(d[1] - d[0])} (${formatValue(d.data[d.key])})`);
+
+        svg.append("g")
+            .call(xAxis);
+
+        svg.append("g")
+            .call(yAxis);
+
+        // make sure to use offset() and not position() as we want it relative to the document, not its parent
+        let hoverLineXOffset =  $(".top-axis").offset().left;
+        let hoverLineYOffset =  $(".left-axis").offset().top ;
+
+        $(container).mouseleave(function (event) {
+            handleMouseOutGraph(event);
+        })
+
+        $(container).mousemove(function (event) {
+            handleMouseOverGraph(event);
+        })
+
+        // add a 'hover' line that we'll show as a user moves their mouse (or finger)
+        // so we can use it to show detailed values of each line
+        let hoverLineGroup = svg.append("svg:g")
+            .attr("class", "hover-line");
+		// add the line to the group
+		let hoverLine = hoverLineGroup
+            .append("svg:line")
+            .attr("style", "stroke: red;")
+            .attr("x1", 30).attr("x2", 30) // vertical line so same value on each
+            .attr("y1", 0).attr("y2", height); // top to bottom	
+        // svg.append("svg:g").selectAll("text").data(series).enter()
+        let hoverText = hoverLineGroup.append("svg:text").attr("class", "show-text")
+            .attr("font-size", 16)
+            .attr("fill", "#333")
+            .text("")
+            .attr("x", 0)
+            .attr("y", 0)//(d, i) => y(d.data.name)
+
+        hoverLine.classed("hide", true);
+        hoverText.classed("hide", true);
+
+        var handleMouseOverGraph = function (event) {
+            var mouseX = event.clientX - hoverLineXOffset;
+            var mouseY = event.clientY - hoverLineYOffset;
+            var currentY = event.offsetY;
+            //debug("MouseOver graph [" + containerId + "] => x: " + mouseX + " y: " + mouseY + "  height: " + h + " event.clientY: " + event.clientY + " offsetY: " + event.offsetY + " pageY: " + event.pageY + " hoverLineYOffset: " + hoverLineYOffset)
+            if (mouseX >= 30 && mouseX <= width - 9 && mouseY >= 20 && mouseY <= height) {
+                // show the hover line
+                hoverLine.classed("hide", false);
+                hoverText.classed("hide", false);
+
+                // set position of hoverLine
+                hoverLine.attr("x1", mouseX).attr("x2", mouseX)
+                hoverText.attr("y", currentY - 20).attr("x", mouseX + 30);
+
+                displayValueLabelsForPositionX(mouseX);
+                displayValueLabelsForPositionY(mouseX);
+
+                // user is interacting
+                userCurrentlyInteracting = true;
+                currentUserPositionX = mouseX;
+            } else {
+                // proactively act as if we've left the area since we're out of the bounds we want
+                handleMouseOutGraph(event)
+            }
+        }
+
+        var handleMouseOutGraph = function (event) {
+            // hide the hover-line
+            hoverLine.classed("hide", true);
+            hoverText.classed("hide", true);
+
+            setValueLabelsToLatest();
+
+            //debug("MouseOut graph [" + containerId + "] => " + mouseX + ", " + mouseY)
+
+            // user is no longer interacting
+            userCurrentlyInteracting = false;
+            currentUserPositionX = -1;
+        }
+
+        var displayValueLabelsForPositionY = function(xPosition, withTransition) {
+            var animate = false;
+            if (withTransition != undefined) {
+                if (withTransition) {
+                    animate = true;
+                }
+            }
+
+            var xTextToShow = xPosition;
+            svg.select('text.show-text').text(xTextToShow);
+        }
+
+        var displayValueLabelsForPositionX = function (xPosition, withTransition) {
+            var animate = false;
+            if (withTransition != undefined) {
+                if (withTransition) {
+                    animate = true;
+                }
+            }
+            var dateToShow;
+            var labelValueWidths = [];
+            svg.selectAll("text.legend.value")
+                .text(function (d, i) {
+                    var valuesForX = getValueForPositionXFromData(xPosition, i);
+                    dateToShow = valuesForX.date;
+                    return valuesForX.value;
+                })
+                .attr("x", function (d, i) {
+                    labelValueWidths[i] = this.getComputedTextLength();
+                })
+
+            // position label names
+            var cumulativeWidth = 0;
+            var labelNameEnd = [];
+            svg.selectAll("text.legend.name")
+                .attr("x", function (d, i) {
+                    // return it at the width of previous labels (where the last one ends)
+                    var returnX = cumulativeWidth;
+                    // increment cumulative to include this one + the value label at this index
+                    cumulativeWidth += this.getComputedTextLength() + 4 + labelValueWidths[i] + 8;
+                    // store where this ends
+                    labelNameEnd[i] = returnX + this.getComputedTextLength() + 5;
+                    return returnX;
+                })
+
+            // remove last bit of padding from cumulativeWidth
+            cumulativeWidth = cumulativeWidth - 8;
+
+            if (cumulativeWidth > width) {
+                // decrease font-size to make fit
+                legendFontSize = legendFontSize - 1;
+                //debug("making legend fit by decreasing font size to: " + legendFontSize)
+                svg.selectAll("text.legend.name")
+                    .attr("font-size", legendFontSize);
+                    svg.selectAll("text.legend.value")
+                    .attr("font-size", legendFontSize);
+
+                // recursively call until we get ourselves fitting
+                displayValueLabelsForPositionX(xPosition);
+                return;
+            }
+
+            // position label values
+            svg.selectAll("text.legend.value")
+                .attr("x", function (d, i) {
+                    return labelNameEnd[i];
+                })
+            
+            // show the date
+            // graph.select('text.date-label').text(dateToShow.toDateString() + " " + dateToShow.toLocaleTimeString())
+
+            // move the group of labels to the right side
+            var transitionDuration = 300;
+            if (animate) {
+                svg.selectAll("g.legend-group g")
+                    .transition()
+                    .duration(transitionDuration)
+                    .ease("linear")
+                    .attr("transform", "translate(" + (width - cumulativeWidth) + ",0)")
+            } else {
+                svg.selectAll("g.legend-group g")
+                    .attr("transform", "translate(" + (width - cumulativeWidth) + ",0)")
+            }
+        }
+        var setValueLabelsToLatest = function (withTransition) {
+            displayValueLabelsForPositionX(width, withTransition);
+        }
+    </script>
+    </body>
+</html>
