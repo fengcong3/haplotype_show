@@ -12,6 +12,7 @@ import re
 import json
 import subprocess
 import copy
+import gzip
 
 Rscript="/public/home/fengcong/anaconda2/envs/R/bin/Rscript"
 py3="/public/home/fengcong/anaconda2/envs/py3/bin/python"
@@ -195,8 +196,8 @@ def deal_SNP(chr_name,snp_sample_order,gene_structure,snp_file):
             SNP_INF.append(tmp_snp_inf_item)
             SNP.append(tmp_snp_item)
 
-
-    return (SNP,SNP_INF)
+    
+    return (SNP,SNP_INF,snp_sample_order)
 
 
 def deal_indel(chr_name,indel_sample_order,gene_structure,indel_file):
@@ -303,10 +304,193 @@ def deal_indel(chr_name,indel_sample_order,gene_structure,indel_file):
             INDEL_INF.append(tmp_indel_inf_item)
             INDEL.append(tmp_indel_item)
         
-    return (INDEL,INDEL_INF)
+    return (INDEL,INDEL_INF,indel_sample_order)
         
+def deal_sv(chr_name,sv_sample_order,gene_structure,sv_file,part_len):
+    sys.stderr.write("resolve SV ...\n")
+    '''{
+            "type":"DEL", #DUP INV
+            "position":6500,
+            "length":700,
+            "stat_in_each_sample":[
+                0,
+                0,
+                0,
+                0,
+                0,
+                1
+            ]
+        }
+    '''
+    ##calc the gene+upstream region
+    need_region=[]
+    if gene_structure["ori"] == "+":
+        need_region=[gene_structure["upsteam"][0][0],gene_structure["gene"][0][1]]
+    else:
+        need_region=[gene_structure["gene"][0][0],gene_structure["upstream"][0][1]]
+
+    #chr pos convert to part pos
+    need_chr=chr_name
+    if chr_name!="chrUn":
+        part_len_d={}
+        inf = open(part_len,"r")
+        for line in inf.readlines():
+            part_len_d[line.strip().split()[0]] = int(line.strip().split()[1])
+        inf.close()
+
+        ## didnt check the region whether cross the part chr ##
+        ## this can be a bug ##
+        ## if u find that this isnt right, u should fix ths bug ##
+        if need_region[0]  > part_len_d[chr_name+"_part1"]:
+            need_chr = chr_name+"_part2"
+            need_region[0] = need_region[0]-part_len_d[chr_name+"_part1"]
+            need_region[1] = need_region[1]-part_len_d[chr_name+"_part1"]
+        else:
+            need_chr = chr_name+"_part1"
+    else:
+        pass
+    
+
+    ##check vcf.gz file
+    if indel_file.endswith(".gz"):
+        if os.path.exists(indel_file+".csi"):
+            pass
+        else:
+            sys.stderr.write("didnt find index file for the vcf.gz file\n")
+            exit(-1)
+    else:
+        sys.stderr.write("vcf file must be bgziped and indexed using bcftools\n")
+        exit(-1)
+
+    ##get the snp in the region
+    
+    child = subprocess.Popen("bcftools view -r %s:%d-%d %s"%(need_chr,need_region[0],need_region[1],sv_file),shell=True,stdout=subprocess.PIPE)
+    #########################SV template
+    SV=[]
+    SV_item={
+        "type":"",
+        "position":0,
+        "length":0,
+        "stat_in_each_sample":[
+            
+        ]
+    }
+
+    SV_INF=[]
+    SV_INF_item={
+        "chr":"",
+        "position":0,
+        "length":0,
+        "ref":"",
+        "alt":"",
+        "ann":[]
+        ##ann1: allele,Annotation , Gene_Name ,Feature_ID ,HGVS.c ,HGVS.p
+    }
+    ###########################SV TEMPLATE
+    for line in child.stdout.readlines():
+        line = line.decode("utf-8")
+        if line.startswith("##"):
+            pass
+        elif line.startswith("#"):
+            sv_sample_order=line.strip().split()[9:]
+        else:
+            
+            # print(line)
+            ls = line.strip().split()
+            if int(ls[1]) >= need_region[0] and int(ls[1]) < need_region[1]:
+                pass
+            else:
+                continue
+            tmp_sv_item=copy.deepcopy(SV_item)
+            tmp_sv_inf_item=copy.deepcopy(SV_INF_item)
+            tmp_sv_item["position"] = int(ls[1])
+            tmp_sv_inf_item["chr"]=chr_name
+            tmp_sv_inf_item["position"] = int(ls[1]) if ls[0].endswith("_part1") else int(ls[1])+part_len_d[ls[0]]
+            tmp_sv_inf_item["ref"] = ls[3]
+            tmp_sv_inf_item["alt"] = ls[4]
+            pattern = re.compile(r".*SVTYPE=(.{,10});.*END=(\d+);.*")
+            match=pattern.match(ls[7])
+            if not match:
+                line = inf.readline()
+                continue
+            svtype=match.groups()[0]
+            ed=int(match.groups()[1])
+
+            tmp_sv_inf_item["type"] = svtype
+            tmp_sv_item["type"] = svtype
+            
+            tmp_sv_inf_item["length"] = ed - int(ls[1])
+            tmp_sv_item["length"] = ed - int(ls[1])
+            
+            
+            for sample in ls[9:]:
+                gt = sample.split(":")[0]
+                if gt[0] == gt[-1]:
+                    if gt[0] == "1":
+                        tmp_sv_item["stat_in_each_sample"].append("1")
+                    elif gt[0] == "0":
+                        tmp_sv_item["stat_in_each_sample"].append("0")
+                    else:
+                        tmp_sv_item["stat_in_each_sample"].append("./.")
+                else:
+                    tmp_sv_item["stat_in_each_sample"].append("0/1")
+
+            SV_INF.append(tmp_sv_inf_item)
+            SV.append(tmp_sv_item)
+        
+    return (SV,SV_INF,sv_sample_order)
+
+def filter_and_sort_sv(SV_and_INF,snp_sample_order,sv_sample_order):
+    new_order_index=[]
+    for i in snp_sample_order :
+        new_order_index.append(sv_sample_order.index(i))
+    
+    ##modify each SV item
+    for item in SV_and_INF[0]:
+        item["stat_in_each_sample"] = [item["stat_in_each_sample"][n] for n in new_order_index]
 
 
+def deal_cnv(gene_name,cnv_sample_order,cnv_file):
+    sys.stderr.write("resolve cnv ...\n")
+    '''
+    "CN":[1,3,2,2,2,2]
+    '''
+    gene_name=gene_name.split(".")[0]
+    CN=[] 
+    inf = gzip.open(cnv_file,"rt") if cnv_file.endswith(".gz") else open(cnv_file,"r")
+
+    line = inf.readline()
+    while line.startswith("##"):
+        line = inf.readline()
+    
+    cnv_sample_order = line.strip().split()[9:]
+    line = inf.readline()
+    while line:
+        ls = line.strip().split()
+        if ls[2] != gene_name:
+            pass
+        else:
+            for gt in ls[9:]:
+                if gt[0] == 0 :
+                    CN.append("1")
+                else:
+                    CN.append("N")
+
+        line = inf.readline()
+    inf.close()
+
+    if len(CN) ==0:
+        CN = ["1" for n in range(len(cnv_sample_order))]
+
+    return (CN,cnv_sample_order)
+
+def filter_and_sort_cnv(CN,snp_sample_order,cnv_sample_order):
+    new_order_index=[]
+    for i in snp_sample_order :
+        new_order_index.append(cnv_sample_order.index(i))
+    
+    CN = [CN[0][n] for  n in new_order_index]
+    return CN
 
 if __name__ == "__main__":
     cmdparser = argparse.ArgumentParser(description="resolve gene structure")
@@ -331,6 +515,7 @@ if __name__ == "__main__":
 
 
     args = cmdparser.parse_args()
+    part_len="/public/agis/chengshifeng_group/fengcong/WGRS/software/Fc-code/partlen.txt"
 
 
     ##deal with the args
@@ -355,15 +540,28 @@ if __name__ == "__main__":
 
     ##deal SNP matrix
     SNP_and_INF=deal_SNP(chr_name,snp_sample_order,gene_structure,snp_file)
-
-
+    snp_sample_order=SNP_and_INF[2]
+    
     #deal indel matrix
     INDEL_and_INF=deal_indel(chr_name,indel_sample_order,gene_structure,indel_file)
-
+    indel_sample_order=INDEL_and_INF[2]
     # print(len(SNP_and_INF[0]),len(SNP_and_INF[1]))
 
+    #deal SV matrix
+    SV_and_INF=deal_sv(chr_name,sv_sample_order,gene_structure,sv_file,part_len)
+    sv_sample_order=SV_and_INF[2]
+    #filter SV sample and sort
+    filter_and_sort_sv(SV_and_INF,snp_sample_order,sv_sample_order)
 
+    #deal cnv matrix
+    #/vol3/agis/chengshifeng_group/xianwenfei/wheat-GWAS/11.CNV/zCNV.vcf
+    CN= deal_cnv(gene_name,cnv_sample_order,cnv_file)
+    cnv_sample_order=CN[1]
+    # print(CN)
+    #filter cnv sample and sort
+    CN=filter_and_sort_cnv(CN,snp_sample_order,cnv_sample_order)
 
+    
 
     ##test ouput 
     output_dict={
@@ -371,10 +569,12 @@ if __name__ == "__main__":
         "sample_name":snp_sample_order,
         "variation":{
             "SNP":SNP_and_INF[0],
-            "INDEL":INDEL_and_INF[0]
+            "INDEL":INDEL_and_INF[0],
+            "SV":SV_and_INF[0],
+            "CN":CN
             }
     }
-    js = json.dumps(output_dict, sort_keys=False, indent=4, separators=(',', ':'))
+    js = json.dumps(output_dict, sort_keys=True, indent=4, separators=(',', ':'))
     # js = json.dumps(output_dict)
     ouf = open(output_file+".json","w")
     ouf.write(js)
@@ -396,12 +596,24 @@ if __name__ == "__main__":
 
     ##indel 
     ouf = open(output_file+".indel.csv","w")
-    ouf.write("%s,%s,%s,%s,%s,allele,Annotation,Gene_Name,Feature_ID,HGVS.c,HGVS.p\n"%("chr","position","length","ref","alt"))
+    ouf.write("%s,%s,%s,%s,%s,type,allele,Annotation,Gene_Name,Feature_ID,HGVS.c,HGVS.p\n"%("chr","position","length","ref","alt"))
     keys=["chr","position","length","ref","alt"] #+ "ann"
     for i in range(len(INDEL_and_INF[1])):
         for key in keys:
             ouf.write("%s,"%( str(INDEL_and_INF[1][i][key]) ) )
-        
+        ouf.write("%s,"%( str(INDEL_and_INF[0][i]["type"]) ) )
         ouf.write("%s\n"%(",".join(INDEL_and_INF[1][i]["ann"][0])))
+
+    ouf.close()
+
+    ##sv
+    ouf = open(output_file+".sv.csv","w")
+    ouf.write("%s,%s,%s,%s,%s,type\n"%("chr","position","length","ref","alt"))
+    keys=["chr","position","length","ref","alt"] #+ "ann"
+    for i in range(len(SV_and_INF[1])):
+        for key in keys:
+            ouf.write("%s,"%( str(SV_and_INF[1][i][key]) ) )
+        ouf.write("%s\n"%( str(SV_and_INF[0][i]["type"]) ) )
+        # ouf.write("%s\n"%(",".join(INDEL_and_INF[1][i]["ann"][0])))
 
     ouf.close()
