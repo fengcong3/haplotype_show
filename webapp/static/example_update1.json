@@ -1,7 +1,7 @@
 {
     "gene_structure":{
         "chr":"chr1A",
-        "gene":[[1,8200]],
+        "gene":[[2001,8200]],
         "gene_name":"TraesCS1A02G000100.1",
         "upstream":[[1,2000]],
         "5p_UTR":[[2001,2050]],
