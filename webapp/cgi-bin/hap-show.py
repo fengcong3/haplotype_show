@@ -10,6 +10,7 @@ from email.utils import parseaddr, formataddr
 import smtplib
 from urllib.parse import unquote
 import json
+import sys
 def get_environ(environ):
     # rquest_method = environ["REQUEST_METHOD"]
     # str = "rquest_method:" + rquest_method + "\r\n"
@@ -36,20 +37,21 @@ def myapp(environ, start_response):
     content = get_environ(environ)
     #name=xiao&email=fengcong97%40qq.com&subject=test&message=1111111111
     split_l = content.split("&")
-
-    gene= unquote(split_l[0].split("gene=")[1],'utf-8')
+    
+    gene= unquote(split_l[0].split("name=")[1],'utf-8')
 
     ret_json = {}
     try:
-        with open("../gene_data/%s.json",'r') as load_f:
+        with open("/var/www/hap.bioinf.club/webapp//gene_data/%s.json"%(gene),'r') as load_f:
             ret_json = json.load(load_f)   
     except Exception:
         ret_json = {}
-     
+    js = json.dumps(ret_json)
 
     start_response('200 OK', [('Content-Type', 'text/plain')])
+    
 
-    return ret_json
+    return js
 
     
     
