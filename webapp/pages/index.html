@@ -6,21 +6,17 @@
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
         <!-- jQuery first, then D3.js, then Bootstrap JS -->
-        <script type="text/javascript" src="https://cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
-        <!-- <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.3.1/d3.js"></script> -->
-        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/6.3.1/d3.js"></script>
-        <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/4.5.0/js/bootstrap.min.js"></script>
-        <!-- Bootstrap CSS -->
-        <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/4.5.0/css/bootstrap.min.css" rel="stylesheet">
-        <link rel="stylesheet" href="../css/common.css">
-        <script type="text/javascript" src="../js/haplotype-plot.js"></script>
-        <script type="text/javascript" src="../js/utils.js"></script>
-        <title>G3RP Haplotypes</title>
+        <script type="text/javascript" src="../static/js/jquery.min.js"></script>
+        <script type="text/javascript" src="../static/js/d3.v6.min.js"></script>
+        <link rel="stylesheet" href="../static/css/common.css">
+        <script type="text/javascript" src="../static/js/haplotype-plot.js"></script>
+        <script type="text/javascript" src="../static/js/utils.js"></script>
+        <title>Gene Haplotypes</title>
     </head>
 
     <body>
         <header class="header">
-            <h2 class="test">G3RP Haplotypes</h2>
+            <h2 class="test">Gene Haplotypes</h2>
             <div class="navigation left">
                 <a href="./index.html">Home</a>
                 <a href="./index.html">About</a>
@@ -29,19 +25,14 @@
         <main class="main">
             <div id="haplotype" class="haplotype-warapper">
                 <div class="haplotype-control">
-                    <form action="http://10.2.2.32/search" accept-charset="UTF-8" method="post" class="haplotype-form">
-                        <select name="gene" id="gene" class="gene-select">
-                            <option value="volvo">Gene1</option>
-                            <option value="saab" selected="selected">Gene2</option>
-                            <option value="opel">Gene3</option>
-                            <option value="audi">Gene4</option>
-                        </select>
+                    <form action="/cgi-bin/hap-show.py" accept-charset="UTF-8" method="post" class="haplotype-form">
+                        <input type="text" name="name" class="gene-select" id="name" 
+                            placeholder="gene name" data-rule="minlen:4" data-msg="Please enter at least 4 chars">
                         <input type="submit" name="commit" value="show">
                     </form>
                 </div>
                 <div class="haplotype-plot">
-                    <div id="d3-plot">
-                    </div>
+                    <svg width="1450" height="900" id="d3-plot" class="svgs" style="background-color: #ffffff;"></svg>
                 </div>
                 <div class="haplotype-table">
                     <div class="tbl-header">
@@ -90,38 +81,16 @@
         let response;
         $.ajax({
             type: "GET",
-            url: "http://10.2.2.32/cgi-bin/example.json",
+            url: "http://10.2.2.32/webapp/static/example_update1.json",
             dataType: "json",
             async: false,
             success: function(resData) {
                 response = resData;
-                console.log(resData);
             },
             error: function(err) {
                 console.log(err);
             }
         });
-        function handleLabel(labelData) {
-            let geneStructure = labelData;
-            let topLabel = [];
-            for (k in geneStructure) {
-                if (geneStructure[k] instanceof Array) {
-                    topLabel.push(geneStructure[k])
-                } else if (geneStructure[k] instanceof Object ) {
-                    for (j in geneStructure[k]) {
-                        if (geneStructure[k][j] instanceof Array) {
-                            topLabel.push(geneStructure[k][j])
-                        }
-                    }
-                }
-            }
-            let sortLabel = [];
-            topLabel.forEach(function (arr, index) {
-                sortLabel.push.apply(sortLabel, arr);
-            });
-            sortLabel.sort();
-            return sortLabel;
-        }
 
         function segmentLabel(data) {
             let label = [];
@@ -131,60 +100,104 @@
             }
             return label;
         }
+
+        function handleVariation(data) {
+            let variation = [];
+            for (key in data) {
+                if (key !== 'CN'){
+                    variation.push(data[key]);
+                }
+            }
+            return variation;
+        }
+
         function handleResData(data) {
-            let temp = {};
+            let temp = [];
             let geneStructure = data["gene_structure"];
             let sampleNames = data["sample_name"];
             let variation = data["variation"];
             sampleNames.unshift("Var");
-            temp["name"] = sampleNames;
-            temp["start"] = geneStructure["upstream"]["0"];
-            temp["end"] = geneStructure["3p_UTR"]["1"];
-            temp["top_label"] = segmentLabel(temp["end"]);
+            let p3 = geneStructure["3p_UTR"]["0"];
+            let p5 = geneStructure["5p_UTR"]["0"];
+            let exon = geneStructure["exon"];
+            let upstream = geneStructure["upstream"]["0"];
+            let ori = geneStructure["ori"];
+
+            let gs_obj = {"upstream": upstream["1"] - upstream["0"] + 1, "5p_UTR": p5["1"] - p5["0"] + 1};
+            for(key in exon) {
+                gs_obj["exon" + key] = exon[key]["1"] - exon[key]["0"] + 1;
+            }
+            gs_obj["3p_UTR"] =  p3["1"] - p3["0"] + 1;
+            gs_obj["end"] = geneStructure["gene"]["0"]["1"];
+            for (key in ori) {
+                gs_obj["ori" + key] = ori[key]["1"] - ori[key]["0"] + 1;
+            }
+
+            gs_obj["name"] = sampleNames;
+
+            // gs_obj["variation"] = handleVariation(variation);
+            temp.push(gs_obj);
             return temp;
         }
-        
+
         let data = handleResData(response);
         console.log(data);
+
+        // 常量
         let margin = ({
             top: 30,
             right: 10,
-            bottom: 0,
-            left: 30
+            bottom: 10,
+            left: 60
         })
-        let height = data.name.length * 25 + margin.top + margin.bottom
-        let width = 960 + margin.left + margin.right
-        
-        let svg = d3.select(container).append("svg").attr("width", width).attr("height", height)
-            .attr("viewBox", [0, 0, width, height]).style("overflow", "visible").attr("cursor", "pointer");
+        let svg = d3.select(container);
+        let width = +svg.attr("width");
+        let height = +svg.attr("height");
+        let innerWidth = width - margin.left - margin.right;
+        let innerHeight = height - margin.top - margin.bottom;
+        let xScale, yScale;
+        let maxX, maxY;
+        let gsHeight = 12;
+        let gsHeightMin = 5;
+        let yValue = (datum) => {return datum.name};
+        let color = d3.scaleOrdinal(data.map(d => d.category), d3.schemeCategory10)
 
-        let x = d3.scaleBand()
-            .domain(data.top_label.map(d => d))
-            .range([margin.left, width - margin.right])
-        let y = d3.scaleBand()
-            .domain(data.name.map(d => d))
-            .range([margin.top, height - margin.bottom])
-            .padding(0.08)
+        const renderInit = function (data) {
+            xScale = d3.scaleLinear()
+            //.domain([d3.min(data, xValue), d3.max(data, xValue)])
+            .domain([0, d3.max(data, d => d.end)])
+            .range([0, innerWidth]).nice();
 
-        let xAxis = g => g
-            .attr("transform", `translate(0,${margin.top})`)
-            .attr("class", "top-axis")
-            .call(d3.axisTop(x).ticks(width / 100, "%"))
-            .call(g => g.selectAll(".domain").remove())
-        
-        let yAxis = g => g
-            .attr("transform", `translate(${margin.left},0)`)
-            .attr("class", "left-axis")
-            .call(d3.axisLeft(y).tickSizeOuter(0))
-            .call(g => g.selectAll(".domain").remove())
+            yScale = d3.scaleBand()
+            .domain(d3.map(yValue(data[0]), d => d))
+            .range([0, innerHeight]).padding(0.08);
 
-        svg.append("g")
-            .call(xAxis);
+            const g = svg.append("g")
+            .attr("transform", `translate(${margin.left}, ${margin.top})`)
+            .attr("id", "miangroup")
 
-        svg.append("g")
-            .call(yAxis);
+            const xAxis = d3.axisTop(xScale);
+            let xAxisGroup = g.append('g').call(xAxis).attr('transform', `translate(${0}, ${0})`)
+            .attr("text-anchor", "end");
 
-        
+
+            const yAxis = d3.axisLeft(yScale);
+            g.append('g').attr("class", "sample-name").call(yAxis);
+
+            let gsData = [];
+            const gs_keys = ["upstream", "5p_UTR", "exon", "3p_UTR"];
+            let gsStack = d3.stack()
+            .keys(gs_keys).order(d3.stackOrderNone);
+
+            const rects = g.selectAll('rect').data(data).enter().append('rect')
+            .attr("fill", 'green').attr("opacity", 0.8)
+            .attr("x", d => xScale(d[0]))
+            .attr("y", d => yScale(d.name)).attr("height", yScale.bandwidth())
+
+        }
+        renderInit(data);
+
+
     </script>
     </body>
 </html>
