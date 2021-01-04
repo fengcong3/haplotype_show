@@ -32,7 +32,29 @@
                     </form>
                 </div>
                 <div class="haplotype-plot">
-                    <svg width="1450" height="900" id="d3-plot" class="svgs" style="background-color: #ffffff;"></svg>
+                    <svg width="220"  height="44"  style="overflow: visible; display: block;">
+                        <g>
+                            <rect x="133" y="18" width="34" height="10" fill="red"></rect>
+                            <rect x="168" y="18" width="34" height="10" fill="green"></rect>
+                            <circle cx="220" cy="22" r="6" fill="blue"></circle>
+                        </g>
+                        <g transform="translate(130,28)" fill="none" font-size="10" font-family="sans-serif" text-anchor="middle">
+                            <g class="tick" opacity="1" transform="translate(20.5,0)">
+                                <line stroke="currentColor" y2="0"></line>
+                                <text fill="currentColor" y="3" dy="0.71em">DEL</text>
+                            </g>
+                            <g class="tick" opacity="1" transform="translate(55.5,0)">
+                                <line stroke="currentColor" y2="0"></line>
+                                <text fill="currentColor" y="3" dy="0.71em">INS</text>
+                            </g>
+                            <g class="tick" opacity="1" transform="translate(90.5,0)">
+                                <line stroke="currentColor" y2="0"></line>
+                                <text fill="currentColor" y="3" dy="0.71em">SNP</text>
+                            </g>
+                            <text x="0" y="-16" fill="currentColor" text-anchor="start" font-weight="bold" class="title">Variation</text>
+                        </g>
+                    </svg>
+                    <svg width="1450" height="960" id="d3-plot" class="svgs" style="background-color: #ffffff;"></svg>
                 </div>
                 <div class="haplotype-table">
                     <div class="tbl-header">
@@ -81,7 +103,7 @@
         let response;
         $.ajax({
             type: "GET",
-            url: "..//static/example_update1.json",
+            url: "http://10.2.2.32/webapp/static/example_update1.json",
             dataType: "json",
             async: false,
             success: function(resData) {
@@ -92,50 +114,24 @@
             }
         });
 
-        function segmentLabel(data) {
-            let label = [];
-            let seg = Math.ceil(data / 10);
-            for (let i = 0; i < 11; i++) {
-                label.push(i * seg);
-            }
-            return label;
-        }
-
-        function handleVariation(data) {
-            let variation = [];
-            for (key in data) {
-                if (key !== 'CN'){
-                    variation.push(data[key]);
-                }
-            }
-            return variation;
-        }
-
         function handleResData(data) {
             let temp = [];
             let geneStructure = data["gene_structure"];
             let sampleNames = data["sample_name"];
             let variation = data["variation"];
-            sampleNames.unshift("Var");
             let p3 = geneStructure["3p_UTR"]["0"];
             let p5 = geneStructure["5p_UTR"]["0"];
             let exon = geneStructure["exon"];
             let upstream = geneStructure["upstream"]["0"];
-            let ori = geneStructure["ori"];
 
             let gs_obj = {"upstream": upstream["1"] - upstream["0"] + 1, "5p_UTR": p5["1"] - p5["0"] + 1};
-            for(key in exon) {
-                gs_obj["exon" + key] = exon[key]["1"] - exon[key]["0"] + 1;
-            }
+            gs_obj["exon"] = exon;
             gs_obj["3p_UTR"] =  p3["1"] - p3["0"] + 1;
             gs_obj["end"] = geneStructure["gene"]["0"]["1"];
-            for (key in ori) {
-                gs_obj["ori" + key] = ori[key]["1"] - ori[key]["0"] + 1;
-            }
 
             gs_obj["name"] = sampleNames;
 
-            // gs_obj["variation"] = handleVariation(variation);
+            gs_obj["variation"] = variation;
             temp.push(gs_obj);
             return temp;
         }
@@ -145,7 +141,7 @@
 
         // 常量
         let margin = ({
-            top: 30,
+            top: 50,
             right: 10,
             bottom: 10,
             left: 60
@@ -157,12 +153,23 @@
         let innerHeight = height - margin.top - margin.bottom;
         let xScale, yScale;
         let maxX, maxY;
-        let gsHeight = 12;
-        let gsHeightMin = 5;
+        let gsHeight = 32;
+        let gsHeightMin = 15;
         let yValue = (datum) => {return datum.name};
-        let color = d3.scaleOrdinal(data.map(d => d.category), d3.schemeCategory10)
+        let color = ({
+            ins: 'green',
+            del: 'red',
+            utrP5: '#FF4500',
+            utrP3: '#FF4500',
+            upstream: '#00FFFF',
+            snp: 'blue',
+            exon: '#1E90FF',
+            svIns: '#7B68EE',
+            svDel: '#800080'
+        })
 
         const renderInit = function (data) {
+            //设置坐标轴的比例尺
             xScale = d3.scaleLinear()
             //.domain([d3.min(data, xValue), d3.max(data, xValue)])
             .domain([0, d3.max(data, d => d.end)])
@@ -170,34 +177,380 @@
 
             yScale = d3.scaleBand()
             .domain(d3.map(yValue(data[0]), d => d))
-            .range([0, innerHeight]).padding(0.08);
+            .range([0, innerHeight]);
 
             const g = svg.append("g")
             .attr("transform", `translate(${margin.left}, ${margin.top})`)
             .attr("id", "miangroup")
 
+            //绘制坐标轴
             const xAxis = d3.axisTop(xScale);
-            let xAxisGroup = g.append('g').call(xAxis).attr('transform', `translate(${0}, ${0})`)
+            let xAxisGroup = g.append('g').call(xAxis).attr('transform', `translate(${0}, ${0})`).attr("class", "top-axis")
+            .attr("text-anchor", "end");
+            const yAxis = d3.axisLeft(yScale);
+            g.append('g').attr("class", "sample-name").call(yAxis).attr("class", "left-axis");
+
+            //设置Variation
+            let xAxisGroupTop = g.append('g').call(xAxis).attr('transform', `translate(${0}, ${-30})`)
             .attr("text-anchor", "end");
 
+            xAxisGroupTop.append('circle').attr("cx", xScale(2500)).attr("cy", "0")
+            .attr("r", 6).attr("fill", color.snp);
 
-            const yAxis = d3.axisLeft(yScale);
-            g.append('g').attr("class", "sample-name").call(yAxis);
+            xAxisGroupTop.append('rect').attr("x", xScale(3200)).attr("y", "-4").attr("fill", color.del)
+            .attr("width", xScale(400)).attr("height", "8").attr("text-anchor", "middle");
 
-            let gsData = [];
-            const gs_keys = ["upstream", "5p_UTR", "exon", "3p_UTR"];
-            let gsStack = d3.stack()
-            .keys(gs_keys).order(d3.stackOrderNone);
+            xAxisGroupTop.append('rect').attr("x", xScale(5500)).attr("y", "-4").attr("fill", color.ins)
+            .attr("width", xScale(400)).attr("height", "8").attr("text-anchor", "middle");
 
-            const rects = g.selectAll('rect').data(data).enter().append('rect')
-            .attr("fill", 'green').attr("opacity", 0.8)
-            .attr("x", d => xScale(d[0]))
-            .attr("y", d => yScale(d.name)).attr("height", yScale.bandwidth())
+            xAxisGroupTop.append('rect').attr("x", xScale(6500)).attr("y", "-4").attr("fill", color.ins)
+            .attr("width", xScale(700)).attr("height", "8").attr("text-anchor", "middle");
 
+
+            //绘制版心
+            const graph = g.append("g").attr("class", "map")
+            let bindHeight = yScale.bandwidth();
+
+            //所有的基因柱状底色全为灰色
+            let bottomColor = [];
+            for(let i = 0; i < data[0].name.length; i++) {
+                let bind = [0, data[0].name[i], gsHeightMin, data[0].end]
+                bottomColor.push(bind);
+            }
+
+            bottomColor.forEach( d=> {
+                graph.append("rect").attr("fill", 'gray')
+                .attr("opacity", 0.6).attr("x", d[0])
+                .attr("y", yScale(d[1]) + bindHeight / 2 - gsHeightMin/2).attr("height", d[2]).attr("width", xScale(d[3]));
+            })
+
+            //绘制不同基因区间的图形
+            //绘制upstream
+            upstream = [];
+            for(let i = 0; i < data[0].name.length; i++) {
+                let bind = [0, data[0].name[i], gsHeightMin, data[0].upstream]
+                upstream.push(bind);
+            }
+            
+            upstream.forEach( d=> { 
+                graph.append("rect").attr("fill", color.upstream).attr("opacity", 1).attr("x", xScale(d[0]))
+                .attr("y", yScale(d[1]) + bindHeight / 2 - gsHeightMin/2).attr("height", d[2]).attr("width", xScale(d[3]))
+            })
+
+            //绘制5p_UTR
+            utrP5 = [];
+            for(let i = 0; i < data[0].name.length; i++) {
+                let bind = [data[0].upstream, data[0].name[i], gsHeight, data[0]["5p_UTR"]]
+                utrP5.push(bind);
+            }
+
+            utrP5.forEach( d=> { 
+                graph.append("rect").attr("fill", color.utrP5).attr("opacity", 1).attr("x", xScale(d[0]))
+                .attr("y", yScale(d[1]) + bindHeight/2 - gsHeight/2).attr("height", d[2]).attr("width", xScale(d[3]))
+            })
+
+            //绘制3p_UTR
+            utrP3 = [];
+            for(let i = 0; i < data[0].name.length; i++) {
+                let bind = [data[0].end - data[0]["3p_UTR"], data[0].name[i], gsHeight, data[0]["3p_UTR"]]
+                utrP3.push(bind);
+            }
+
+            utrP3.forEach( d=> { 
+                graph.append("rect").attr("fill", color.utrP3).attr("opacity", 1).attr("x", xScale(d[0]))
+                .attr("y", yScale(d[1]) + bindHeight / 2 - gsHeight/2).attr("height", d[2]).attr("width", xScale(d[3]))
+            })
+
+            //绘制exon 
+            exon = [];
+            for(let i = 0; i < data[0].name.length; i++) {
+                let exonData = data[0].exon;
+                exonData.forEach( d=> {
+                    let innerBind = [d[0], data[0].name[i], gsHeight, d[1] - d[0] + 1];
+                    exon.push(innerBind);
+                })
+            }
+
+            exon.forEach( d=> { 
+                for(let i=0; i < data[0].name.length; i++) { 
+                    graph.append("rect").attr("fill", color.exon).attr("opacity", 1).attr("x", xScale(d[0]))
+                    .attr("y", yScale(d[1]) + bindHeight / 2 - gsHeight/2).attr("height", d[2]).attr("width", xScale(d[3]))
+                }
+            })
+
+            //绘制INDEL插入缺失
+            variation = data[0].variation;
+
+            del = [];
+            ins = [];
+            INDEL = variation.INDEL;
+            for(let i = 0; i < data[0].name.length; i++) {
+                for (let j = 0; j < INDEL.length; j++) {
+                    let item = INDEL[j];
+                    if (item.type == 'DEL') {
+                        if (item.stat_in_each_sample[i] == '1') {
+                            let bind = [item.position , data[0].name[i], gsHeightMin, item.length]
+                            del.push(bind);
+                        }
+                    } else if (item.type == 'INS') {
+                        if (item.stat_in_each_sample[i] == '1') {
+                            let bind = [item.position , data[0].name[i], gsHeightMin, item.length]
+                            ins.push(bind);
+                        }
+                    }
+                    
+                    
+                }
+            }
+
+            del.forEach( d=> { 
+                for(let i=0; i < data[0].name.length; i++) { 
+                    graph.append("rect").attr("fill", color.del).attr("opacity", 1).attr("x", xScale(d[0]))
+                    .attr("y", yScale(d[1]) + bindHeight / 2 - gsHeightMin/2).attr("height", d[2]).attr("width", xScale(d[3]))
+                }
+            })
+
+            ins.forEach( d=> { 
+                for(let i=0; i < data[0].name.length; i++) { 
+                    graph.append("rect").attr("fill", color.ins).attr("opacity", 1).attr("x", xScale(d[0]))
+                    .attr("y", yScale(d[1]) + bindHeight / 2 - gsHeightMin/2).attr("height", d[2]).attr("width", xScale(d[3]))
+                }
+            })
+
+            //绘制sv
+
+            svDel = [];
+            svIns = [];
+            SV = variation.SV;
+            for(let i = 0; i < data[0].name.length; i++) {
+                for (let j = 0; j < SV.length; j++) {
+                    let item = SV[j];
+                    if (item.type == 'DEL') {
+                        if (item.stat_in_each_sample[i] == '1') {
+                            let bind = [item.position , data[0].name[i], gsHeightMin, item.length]
+                            svDel.push(bind);
+                        }
+                    } else if (item.type == 'INS') {
+                        if (item.stat_in_each_sample[i] == '1') {
+                            let bind = [item.position , data[0].name[i], gsHeightMin, item.length]
+                            svIns.push(bind);
+                        }
+                    }
+                }
+            }
+
+            svDel.forEach( d=> { 
+                for(let i=0; i < data[0].name.length; i++) { 
+                    graph.append("rect").attr("fill", color.svDel).attr("opacity", 1).attr("x", xScale(d[0]))
+                    .attr("y", yScale(d[1]) + bindHeight / 2 - gsHeightMin/2).attr("height", d[2]).attr("width", xScale(d[3]))
+                }
+            })
+
+            svIns.forEach( d=> { 
+                for(let i=0; i < data[0].name.length; i++) { 
+                    graph.append("rect").attr("fill", color.svIns).attr("opacity", 1).attr("x", xScale(d[0]))
+                    .attr("y", yScale(d[1]) + bindHeight / 2 - gsHeightMin/2).attr("height", d[2]).attr("width", xScale(d[3]))
+                }
+            })
+
+            //绘制CN 
+
+            _cn = [];
+            CN = variation.CN;
+            for(let i = 0; i < data[0].name.length; i++) {
+                let text = [data[0].end + 400, data[0].name[i], gsHeightMin, CN[i]];
+                _cn.push(text);
+            }
+
+            _cn.forEach( d=> {  
+                graph.append("text").attr("opacity", 1).attr("x", xScale(d[0]))
+                .attr("y", yScale(d[1]) + bindHeight / 2 + 10).text(d[3])
+                .attr("font-size", '2em').attr("text-anchor", 'middle');
+            })
         }
+        
+
+        const updateGraph = function() {
+            // make sure to use offset() and not position() as we want it relative to the document, not its parent
+            let hoverLineXOffset =  $(".top-axis").offset().left;
+            let hoverLineYOffset =  $(".left-axis").offset().top ;
+
+            $(container).mouseleave(function (event) {
+                handleMouseOutGraph(event);
+            })
+
+            $(container).mousemove(function (event) {
+                handleMouseOverGraph(event);
+            })
+
+            // add a 'hover' line that we'll show as a user moves their mouse (or finger)
+            // so we can use it to show detailed values of each line
+            let hoverLineGroup = svg.append("svg:g")
+                .attr("class", "hover-line");
+            // add the line to the group
+            let hoverLine = hoverLineGroup
+                .append("svg:line")
+                .attr("style", "stroke: red;")
+                .attr("x1", 30).attr("x2", 30) // vertical line so same value on each
+                .attr("y1", 0).attr("y2", innerHeight); // top to bottom	
+            // svg.append("svg:g").selectAll("text").data(series).enter()
+            let hoverText = hoverLineGroup.append("svg:text").attr("class", "show-text")
+                .attr("font-size", 16)
+                .attr("fill", "#333")
+                .text("")
+                .attr("x", 0)
+                .attr("y", 0)//(d, i) => y(d.data.name)
+
+            hoverLine.classed("hide", true);
+            hoverText.classed("hide", true);
+
+            var handleMouseOverGraph = function (event) {
+                var mouseX = event.clientX - hoverLineXOffset;
+                var mouseY = event.clientY - hoverLineYOffset;
+                var currentY = event.offsetY;
+                if (mouseX >= 30 && mouseX <= width - 9 && mouseY >= 20 && mouseY <= height) {
+                    // show the hover line
+                    hoverLine.classed("hide", false);
+                    hoverText.classed("hide", false);
+
+                    // set position of hoverLine
+                    hoverLine.attr("x1", mouseX).attr("x2", mouseX)
+                    hoverText.attr("y", currentY - 20).attr("x", mouseX + 30);
+
+                    displayValueLabelsForPositionX(mouseX);
+                    displayValueLabelsForPositionY(mouseX);
+
+                    // user is interacting
+                    userCurrentlyInteracting = true;
+                    currentUserPositionX = mouseX;
+                } else {
+                    // proactively act as if we've left the area since we're out of the bounds we want
+                    handleMouseOutGraph(event)
+                }
+            }
+
+            var handleMouseOutGraph = function (event) {
+                // hide the hover-line
+                hoverLine.classed("hide", true);
+                hoverText.classed("hide", true);
+
+                setValueLabelsToLatest();
+
+                //debug("MouseOut graph [" + containerId + "] => " + mouseX + ", " + mouseY)
+
+                // user is no longer interacting
+                userCurrentlyInteracting = false;
+                currentUserPositionX = -1;
+            }
+            
+            /**
+             * Convert back from an X position on the graph to a data value from the given array (one of the lines)
+             * Return {value: value, date, date}
+             */
+            var getValueForPositionXFromData = function (xPosition, dataSeriesIndex) {
+
+                // bucketDate is the date rounded to the correct 'step' instead of interpolated
+                var bucketDate = new Date(); // index+1 as it is 0 based but we need 1-based for this math
+
+                return {
+                    value: xPosition,
+                    date: bucketDate
+                };
+            }
+
+
+            var displayValueLabelsForPositionY = function(xPosition, withTransition) {
+                var animate = false;
+                if (withTransition != undefined) {
+                    if (withTransition) {
+                        animate = true;
+                    }
+                }
+
+                var xTextToShow = xPosition;
+                svg.select('text.show-text').text(xTextToShow);
+            }
+
+
+            var displayValueLabelsForPositionX = function (xPosition, withTransition) {
+                var animate = false;
+                if (withTransition != undefined) {
+                    if (withTransition) {
+                        animate = true;
+                    }
+                }
+                var dateToShow;
+                var labelValueWidths = [];
+                svg.selectAll("text.show-text")
+                    .text(function (d, i) {
+                        var valuesForX = getValueForPositionXFromData(xPosition, i);
+                        dateToShow = valuesForX.date;
+                        return valuesForX.value;
+                    })
+                    .attr("x", function (d, i) {
+                        labelValueWidths[i] = this.getComputedTextLength();
+                    })
+
+                // position label names
+                var cumulativeWidth = 0;
+                var labelNameEnd = [];
+                svg.selectAll("text.show-text")
+                    .attr("x", function (d, i) {
+                        // return it at the width of previous labels (where the last one ends)
+                        var returnX = cumulativeWidth;
+                        // increment cumulative to include this one + the value label at this index
+                        cumulativeWidth += this.getComputedTextLength() + 4 + labelValueWidths[i] + 8;
+                        // store where this ends
+                        labelNameEnd[i] = returnX + this.getComputedTextLength() + 5;
+                        return returnX;
+                    })
+
+                // remove last bit of padding from cumulativeWidth
+                cumulativeWidth = cumulativeWidth - 8;
+
+                if (cumulativeWidth > width) {
+                    // decrease font-size to make fit
+                    legendFontSize = legendFontSize - 1;
+                    //debug("making legend fit by decreasing font size to: " + legendFontSize)
+                    svg.selectAll("text.show-text")
+                        .attr("font-size", legendFontSize);
+                        svg.selectAll("text.show-text")
+                        .attr("font-size", legendFontSize);
+
+                    // recursively call until we get ourselves fitting
+                    displayValueLabelsForPositionX(xPosition);
+                    return;
+                }
+
+                // position label values
+                svg.selectAll("text.show-text")
+                    .attr("x", function (d, i) {
+                        return labelNameEnd[i];
+                    })
+                
+                // show the date
+                // graph.select('text.date-label').text(dateToShow.toDateString() + " " + dateToShow.toLocaleTimeString())
+
+                // move the group of labels to the right side
+                var transitionDuration = 300;
+                if (animate) {
+                    svg.selectAll("g.hover-line")
+                        .transition()
+                        .duration(transitionDuration)
+                        .ease("linear")
+                        .attr("transform", "translate(" + (width - cumulativeWidth) + ",0)")
+                } else {
+                    svg.selectAll("g.hover-line")
+                        .attr("transform", "translate(" + (width - cumulativeWidth) + ",0)")
+                }
+            }
+            var setValueLabelsToLatest = function (withTransition) {
+                displayValueLabelsForPositionX(width, withTransition);
+            }
+        }
+
         renderInit(data);
-
-
+        updateGraph();
     </script>
     </body>
 </html>
