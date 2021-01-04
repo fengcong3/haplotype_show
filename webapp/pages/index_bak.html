@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <!-- Required meta tags -->
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+        <!-- jQuery first, then D3.js, then Bootstrap JS -->
+        <script type="text/javascript" src="../static/js/jquery.min.js"></script>
+        <script type="text/javascript" src="../static/js/d3.v6.min.js"></script>
+        <link rel="stylesheet" href="../static/css/common.css">
+        <script type="text/javascript" src="../static/js/haplotype-plot.js"></script>
+        <script type="text/javascript" src="../static/js/utils.js"></script>
+        <title>Gene Haplotypes</title>
+    </head>
+
+    <body>
+        <header class="header">
+            <h2 class="test">Gene Haplotypes</h2>
+            <div class="navigation left">
+                <a href="./index.html">Home</a>
+                <a href="./index.html">About</a>
+            </div>
+        </header>
+        <main class="main">
+            <div id="haplotype" class="haplotype-warapper">
+                <div class="haplotype-control">
+                    <form action="/cgi-bin/hap-show.py" accept-charset="UTF-8" method="post" class="haplotype-form">
+                        <input type="text" name="name" class="gene-select" id="name" 
+                            placeholder="gene name" data-rule="minlen:4" data-msg="Please enter at least 4 chars">
+                        <input type="submit" name="commit" value="show">
+                    </form>
+                </div>
+                <div class="haplotype-plot">
+                    <svg width="1450" height="900" id="d3-plot" class="svgs" style="background-color: #ffffff;"></svg>
+                </div>
+                <div class="haplotype-table">
+                    <div class="tbl-header">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Block_no</th>
+                                    <th>Assembly</th>
+                                    <th>Start</th>
+                                    <th>End</th>
+                                    <th>Length</th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                    <div class="tbl-content">
+                        <table>
+                            <tbody>
+                                <tr>
+                                    <td>1</td>
+                                    <td>LongReach Lancer</td>
+                                    <td>40,000,000</td>
+                                    <td>485,000,000</td>
+                                    <td>445,000,000</td>
+                                </tr>
+                                <tr>
+                                    <td>1</td>
+                                    <td>Jagger</td>
+                                    <td>35,000,000</td>
+                                    <td>485,000,000</td>
+                                    <td>450,000,000</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+        <footer>
+            <span>这是footer</span>
+        </footer>
+
+    <script type="text/javascript">
+        let containerId = "d3-plot";
+        let container = document.querySelector("#d3-plot");
+        let response;
+        $.ajax({
+            type: "GET",
+            url: "..//static/example_update1.json",
+            dataType: "json",
+            async: false,
+            success: function(resData) {
+                response = resData;
+            },
+            error: function(err) {
+                console.log(err);
+            }
+        });
+
+        function segmentLabel(data) {
+            let label = [];
+            let seg = Math.ceil(data / 10);
+            for (let i = 0; i < 11; i++) {
+                label.push(i * seg);
+            }
+            return label;
+        }
+
+        function handleVariation(data) {
+            let variation = [];
+            for (key in data) {
+                if (key !== 'CN'){
+                    variation.push(data[key]);
+                }
+            }
+            return variation;
+        }
+
+        function handleResData(data) {
+            let temp = [];
+            let geneStructure = data["gene_structure"];
+            let sampleNames = data["sample_name"];
+            let variation = data["variation"];
+            sampleNames.unshift("Var");
+            let p3 = geneStructure["3p_UTR"]["0"];
+            let p5 = geneStructure["5p_UTR"]["0"];
+            let exon = geneStructure["exon"];
+            let upstream = geneStructure["upstream"]["0"];
+            let ori = geneStructure["ori"];
+
+            let gs_obj = {"upstream": upstream["1"] - upstream["0"] + 1, "5p_UTR": p5["1"] - p5["0"] + 1};
+            for(key in exon) {
+                gs_obj["exon" + key] = exon[key]["1"] - exon[key]["0"] + 1;
+            }
+            gs_obj["3p_UTR"] =  p3["1"] - p3["0"] + 1;
+            gs_obj["end"] = geneStructure["gene"]["0"]["1"];
+            for (key in ori) {
+                gs_obj["ori" + key] = ori[key]["1"] - ori[key]["0"] + 1;
+            }
+
+            gs_obj["name"] = sampleNames;
+
+            // gs_obj["variation"] = handleVariation(variation);
+            temp.push(gs_obj);
+            return temp;
+        }
+
+        let data = handleResData(response);
+        console.log(data);
+
+        // 常量
+        let margin = ({
+            top: 30,
+            right: 10,
+            bottom: 10,
+            left: 60
+        })
+        let svg = d3.select(container);
+        let width = +svg.attr("width");
+        let height = +svg.attr("height");
+        let innerWidth = width - margin.left - margin.right;
+        let innerHeight = height - margin.top - margin.bottom;
+        let xScale, yScale;
+        let maxX, maxY;
+        let gsHeight = 12;
+        let gsHeightMin = 5;
+        let yValue = (datum) => {return datum.name};
+        let color = d3.scaleOrdinal(data.map(d => d.category), d3.schemeCategory10)
+
+        const renderInit = function (data) {
+            xScale = d3.scaleLinear()
+            //.domain([d3.min(data, xValue), d3.max(data, xValue)])
+            .domain([0, d3.max(data, d => d.end)])
+            .range([0, innerWidth]).nice();
+
+            yScale = d3.scaleBand()
+            .domain(d3.map(yValue(data[0]), d => d))
+            .range([0, innerHeight]).padding(0.3);
+
+            const g = svg.append("g")
+            .attr("transform", `translate(${margin.left}, ${margin.top})`)
+            .attr("id", "miangroup")
+
+            const xAxis = d3.axisTop(xScale);
+            let xAxisGroup = g.append('g').call(xAxis).attr('transform', `translate(${0}, ${0})`)
+            .attr("text-anchor", "end");
+
+
+            const yAxis = d3.axisLeft(yScale);
+            g.append('g').attr("class", "sample-name").call(yAxis);
+
+            let gsData = [];
+            const gs_keys = ["upstream", "5p_UTR", "exon", "3p_UTR"];
+            let gsStack = d3.stack()
+            .keys(gs_keys).order(d3.stackOrderNone);
+            //selectAll('rect').data(data).enter()
+            const rects = g.append('rect')
+            .attr("fill", 'green').attr("opacity", 0.8)
+            .attr("x", d => xScale(2000))
+            .attr("y", d => yScale("S5"))
+            .attr("height", yScale.bandwidth())
+            .attr("width",xScale(1500))
+
+            g.append('rect')
+            .attr("fill", 'green').attr("opacity", 0.8)
+            .attr("x", d => xScale(2000))
+            .attr("y", d => yScale("S6"))
+            .attr("height", yScale.bandwidth())
+            .attr("width",xScale(1500))
+
+            g.append('rect')
+            .attr("fill", 'red').attr("opacity", 0.8)
+            .attr("x", d => xScale(2000))
+            .attr("y", d => yScale("S6"))
+            .attr("height", yScale.bandwidth())
+            .attr("width",xScale(300))
+
+        }
+        renderInit(data);
+
+
+    </script>
+    </body>
+</html>
