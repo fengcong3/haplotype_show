@@ -163,7 +163,7 @@ div.navigation a {
 .main {
   width: 100%;
   display: block;
-  text-align: center;
+  /* text-align: center; */
   margin-top: 30px;
 }
 
@@ -207,7 +207,6 @@ div.navigation a {
   background-color: #fff;
   line-height: 20px;
 }
-
 
 .haplotype-table {
   flex: 1;
@@ -287,4 +286,32 @@ tbody {
 
 input[type="submit"] {
     cursor: pointer;
+}
+
+.haplotype-refs {
+    position: relative;
+    margin: 17px 0;
+    display: inline-block;
+}
+
+.next {
+    margin: 17px 0;
+    display: inline-block;
+    margin-left: 600px;
+}
+
+button {
+    background-color: #f66f6a;
+    color: white;
+    width: 100px;
+    height: 45px;
+    border: 0;
+    font-size: 16px;
+    box-sizing: content-box;
+    border-radius: 5px;
+    margin: 0 15px;
+}
+
+button:hover {
+    background-color: #a54b4a;
 }

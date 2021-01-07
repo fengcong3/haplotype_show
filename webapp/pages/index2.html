@@ -32,60 +32,51 @@
                     <input type="submit" name="commit" value="show">
                 </form>
             </div>
-            <div class="haplotype-refs" dir="auto">
-                <svg width="520" height="40" style="overflow: visible;">
+            <div class="observablehq" dir="auto">
+                <svg width="520" height="44" style="overflow: visible;">
                     <g>
-                        <!-- <rect x="131" y="18" width="34" height="10" fill="white" stroke="red"
-                            style="stroke-dasharray: 4, 4; stroke-width: 1.5"></rect> -->
-                        <!-- 36 -->
-                        <circle cx="136" cy="23" r="6" fill="blue"></circle>
-                        <rect x="154" y="18" width="34" height="10" fill="red"></rect>
-                        <rect x="190" y="18" width="34" height="10" fill="green"></rect>
-                        <rect x="226" y="18" width="34" height="10" fill="#800080"></rect>
-                        <rect x="262" y="18" width="34" height="10" fill="#FFA500"></rect>
-                        <rect x="298" y="18.5" width="34" height="10" fill="#00FFFF"></rect>
-                        <rect x="334" y="18" width="34" height="10" fill="#FF4500"></rect>
-                        <rect x="370" y="18" width="34" height="10" fill="#1E90FF"></rect>
-                        <rect x="406" y="18" width="34" height="10" fill="yellow"></rect>
+                        <rect x="133" y="18" width="32" height="10" fill="white" stroke="red" style="stroke-dasharray: 4, 4; stroke-width: 1.5" ></rect>
+                        <rect x="168" y="18" width="34" height="10" fill="green"></rect>
+                        <rect x="203" y="18" width="34" height="10" fill="#800080"></rect>
+                        <rect x="238" y="18" width="34" height="10" fill="#FFA500"></rect>
+                        <circle cx="285" cy="23" r="6" fill="blue"></circle>
+                        <rect x="296" y="18" width="34" height="10" fill="#00FFFF"></rect>
+                        <rect x="331" y="18" width="34" height="10" fill="#FF4500"></rect>
+                        <rect x="366" y="18" width="34" height="10" fill="#1E90FF"></rect>
                     </g>
                     <g transform="translate(130,28)" fill="none" font-size="10" font-family="sans-serif"
                         text-anchor="middle">
-                        <!-- 36 -->
-                        <g class="tick" opacity="1" transform="translate(5.5,0)">
-                            <line stroke="currentColor" y2="0"></line>
-                            <text fill="currentColor" y="3" dy="0.71em">SNP</text>
-                        </g>
-                        <g class="tick" opacity="1" transform="translate(40.5,0)">
+                        <g class="tick" opacity="1" transform="translate(20.5,0)">
                             <line stroke="currentColor" y2="0"></line>
                             <text fill="currentColor" y="3" dy="0.71em">DEL</text>
                         </g>
-                        <g class="tick" opacity="1" transform="translate(75.5,0)">
+                        <g class="tick" opacity="1" transform="translate(55.5,0)">
                             <line stroke="currentColor" y2="0"></line>
                             <text fill="currentColor" y="3" dy="0.71em">INS</text>
                         </g>
-                        <g class="tick" opacity="1" transform="translate(112.5,0)">
+                        <g class="tick" opacity="1" transform="translate(90.5,0)">
                             <line stroke="currentColor" y2="0"></line>
                             <text fill="currentColor" y="3" dy="0.71em">SVDEL</text>
                         </g>
-                        <g class="tick" opacity="1" transform="translate(148.5,0)">
+                        <g class="tick" opacity="1" transform="translate(125.5,0)">
                             <line stroke="currentColor" y2="0"></line>
                             <text fill="currentColor" y="3" dy="0.71em">SVDUP</text>
                         </g>
-                        <g class="tick" opacity="1" transform="translate(183.5,0)">
+                        <g class="tick" opacity="1" transform="translate(155.5,0)">
                             <line stroke="currentColor" y2="0"></line>
-                            <text fill="currentColor" y="3" dy="0.70em">UP</text>
+                            <text fill="currentColor" y="3" dy="0.71em">SNP</text>
+                        </g>
+                        <g class="tick" opacity="1" transform="translate(185.5,0)">
+                            <line stroke="currentColor" y2="0"></line>
+                            <text fill="currentColor" y="3" dy="0.71em">UP</text>
                         </g>
                         <g class="tick" opacity="1" transform="translate(220.5,0)">
                             <line stroke="currentColor" y2="0"></line>
                             <text fill="currentColor" y="3" dy="0.71em">UTR</text>
                         </g>
-                        <g class="tick" opacity="1" transform="translate(256.5,0)">
+                        <g class="tick" opacity="1" transform="translate(253.5,0)">
                             <line stroke="currentColor" y2="0"></line>
                             <text fill="currentColor" y="3" dy="0.71em">EXON</text>
-                        </g>
-                        <g class="tick" opacity="1" transform="translate(292.5,0)">
-                            <line stroke="currentColor" y2="0"></line>
-                            <text fill="currentColor" y="3" dy="0.71em">SVINS</text>
                         </g>
                         <text x="0" y="-16" fill="currentColor" text-anchor="start" font-weight="bold"
                             class="title">Variation And Gene Structure Color Distribution
@@ -95,11 +86,7 @@
             </div>
             <div class="haplotype-plot" dir="auto" height="540"
                 style="overflow-y: scroll; cursor: pointer; margin: 17px 0;">
-                <svg width="1500" id="d3-plot" class="svgs" style="background-color: #ffffff;"></svg>
-            </div>
-            <div class="next">
-                <button width="24px" height="16px" onclick="handleClickToDrawPreGeneStructureSvg()">上一张图</button>
-                <button onclick="handleClickToDrawNextGeneStructureSvg()">下一张图</button>
+                <svg width="1450" id="d3-plot" class="svgs" style="background-color: #ffffff;"></svg>
             </div>
             <div class="haplotype-table">
                 <div class="tbl-header">
@@ -148,7 +135,8 @@
         let response;
         $.ajax({
             type: "GET",
-            url: "../static/example_update1.json",
+            // url: "http://10.2.2.32/webapp/static/example_update1.json",
+            url: "../static/example_update2.json",
             //url: "../gene_data/TraesCS2D02G079600.json",
             dataType: "json",
             contentType: "application/json; charset=utf-8",
@@ -166,23 +154,12 @@
             let geneStructure = data["gene_structure"];
             let sampleNames = data["sample_name"];
             let variation = data["variation"];
+            let p3 = geneStructure["3p_UTR"]["0"];
+            let p5 = geneStructure["5p_UTR"]["0"];
             let exon = geneStructure["exon"];
             let upstream = geneStructure["upstream"]["0"];
             let ori = geneStructure["ori"];
             let gene = geneStructure["gene"]["0"];
-            let p5, p3;
-            //判断5p_UTR和3p_UTR是否存在
-            if (geneStructure["3p_UTR"].length === 0) {
-                p3 = [];
-            } else {
-                p3 = geneStructure["3p_UTR"]["0"];
-            }
-            if (geneStructure["5p_UTR"].length === 0) {
-                p5 = [];
-            } else {
-                p5 = geneStructure["5p_UTR"]["0"];
-            }
-
             let gs_obj = {};
             if (ori === '+') {
                 gs_obj["start"] = upstream["0"] - 1;
@@ -195,17 +172,9 @@
             }
 
             if (+(gs_obj["start"]) > 0) {
-                if (p3.length != 0) {
-                    gs_obj["3p_UTR"] = p3["1"] - p3["0"] + 1 + gs_obj["start"];
-                } else {
-                    gs_obj["3p_UTR"] = 0;
-                }
-                if (p5.length != 0) {
-                    gs_obj["5p_UTR"] = p5["1"] - p5["0"] + 1 + gs_obj["start"];
-                } else {
-                    gs_obj["5p_UTR"] = 0;
-                }
                 gs_obj["upstream"] = upstream["1"] - upstream["0"] + 1 + gs_obj["start"];
+                gs_obj["5p_UTR"] = p5["1"] - p5["0"] + 1 + gs_obj["start"];
+                gs_obj["3p_UTR"] = p3["1"] - p3["0"] + 1 + gs_obj["start"];
                 let _exon = [];
                 exon.forEach(d => {
                     _exon.push([d["0"], d["1"] + gs_obj["start"]]);
@@ -213,18 +182,10 @@
                 })
                 gs_obj["exon"] = _exon;
             } else {
-                if (p3.length != 0) {
-                    gs_obj["3p_UTR"] = p3["1"] - p3["0"] + 1
-                } else {
-                    gs_obj["3p_UTR"] = 0;
-                }
-                if (p5.length != 0) {
-                    gs_obj["5p_UTR"] = p5["1"] - p5["0"] + 1;
-                } else {
-                    gs_obj["5p_UTR"] = 0;
-                }
                 gs_obj["upstream"] = upstream["1"] - upstream["0"] + 1;
+                gs_obj["5p_UTR"] = p5["1"] - p5["0"] + 1;
                 gs_obj["exon"] = exon;
+                gs_obj["3p_UTR"] = p3["1"] - p3["0"] + 1;
             }
             gs_obj["name"] = sampleNames;
             gs_obj["variation"] = variation;
@@ -241,7 +202,7 @@
             top: 50,
             right: 10,
             bottom: 10,
-            left: 100
+            left: 60
         })
         let color = ({
             ins: 'green',
@@ -252,61 +213,35 @@
             snp: 'blue',
             exon: '#1E90FF',
             svDup: '#FFA500',
-            svDel: '#800080',
-            svIns: 'yellow',
+            svDel: '#800080'
         })
         let svg = d3.select(container);
         // width="1450" height="360" 
         let width = +svg.attr("width");
         // let height = +svg.attr("height");
-        let height = data[0].name.length * 70;
+        let height = data[0].name.length * 50;
         svg.attr("height", height);
         let innerWidth = width - margin.left - margin.right;
         let innerHeight = height - margin.top - margin.bottom;
         let xScale, yScale;
         let lineLeft, lineRight, geneLength;
-        let xScaleMax, start, ori;
+        let xScaleMax, start;
         let gsHeight = 28;
         let gsHeightMin = 15;
-        let snp_r = 6;
-        let pathMoveY = 10;
-        let delta = 50;
         let snpPosition = [];
-        let _snp, graph, bindHeight, sampleNames, geneEnd;
+        let _snp, graph, bindHeight, sampleNames;
         let yValue = (datum) => { return datum.name };
 
-        ori = data[0].ori;
-        start = data[0].start;
-        geneEnd = data[0].geneEnd;
-        if (ori === '+') {
-            xScaleMax = data[0].end;
-        } else if (ori === '-') {
-            xScaleMax = data[0].end;
-        }
-        let current_data = [];
-        let pre_data = [];
-        let temp_data = [];
-        let current_index = [];
-        let next_data = [];
-
-        function currentDataInit() {
-            // 返回array，返回的数据包括：sampleNames:[], exon:[[]], variation: {CN:[{}],INDEL:[{},SNP:[{}],SV:[{}]}
-        }
-
-        function getNextData() {
-            // 获得下一张图的数据
-        }
-        function handleClickToDrawPreGeneStructureSvg() {
-            // 将pre_data的数据传入renderInit(),
-        }
-
-        function handleClickToDrawNextGeneStructureSvg() {
-
-        }
-
         const renderInit = function (data) {
-            // sampleNames is dynamic
+            let ori = data[0].ori;
+            start = data[0].start;
+            geneEnd = data[0].geneEnd;
             sampleNames = data[0].name;
+            if (ori === '+') {
+                xScaleMax = data[0].end;
+            } else if (ori === '-') {
+                xScaleMax = data[0].end;
+            }
             //设置坐标轴的比例尺
             xScale = d3.scaleLinear()
                 //.domain([d3.min(data, xValue), d3.max(data, xValue)])
@@ -314,8 +249,7 @@
                 .range([0, innerWidth]).nice();
 
             yScale = d3.scaleBand()
-                // .domain(d3.map(yValue(data[0]), d => d))
-                .domain(sampleNames)
+                .domain(d3.map(yValue(data[0]), d => d))
                 .range([0, innerHeight]);
 
             const g = svg.append("g")
@@ -334,6 +268,10 @@
             let xAxisGroupTop = g.append('g').call(xAxis).attr('transform', `translate(${0}, ${-30})`)
                 .attr("text-anchor", "end");
 
+            xAxisGroupTop.append('circle').attr("cx", xScale(2500)).attr("cy", "0")
+                .attr("r", 6).attr("fill", color.snp);
+
+
             //绘制版心
             graph = g.append("g").attr("class", "map")
             bindHeight = yScale.bandwidth();
@@ -341,8 +279,8 @@
             //所有的基因柱状底色全为灰色
             let bottomColor = [];
 
-            for (let i = 0; i < sampleNames.length; i++) {
-                let bind = [start, sampleNames[i], gsHeightMin, xScaleMax]
+            for (let i = 0; i < data[0].name.length; i++) {
+                let bind = [start, data[0].name[i], gsHeightMin, xScaleMax]
                 bottomColor.push(bind);
             }
 
@@ -356,13 +294,13 @@
             //绘制upstream
             upstream = [];
             if (ori === '+') {
-                for (let i = 0; i < sampleNames.length; i++) {
-                    let bind = [start, sampleNames[i], gsHeightMin, data[0].upstream]
+                for (let i = 0; i < data[0].name.length; i++) {
+                    let bind = [start, data[0].name[i], gsHeightMin, data[0].upstream]
                     upstream.push(bind);
                 }
             } else if (ori === '-') {
-                for (let i = 0; i < sampleNames.length; i++) {
-                    let bind = [geneEnd, sampleNames[i], gsHeightMin, data[0].upstream]
+                for (let i = 0; i < data[0].name.length; i++) {
+                    let bind = [geneEnd, data[0].name[i], gsHeightMin, data[0].upstream]
                     upstream.push(bind);
                 }
             }
@@ -374,8 +312,8 @@
 
             //绘制5p_UTR
             utrP5 = [];
-            for (let i = 0; i < sampleNames.length; i++) {
-                let bind = [data[0].upstream - start, sampleNames[i], gsHeight, data[0]["5p_UTR"]]
+            for (let i = 0; i < data[0].name.length; i++) {
+                let bind = [data[0].upstream - start, data[0].name[i], gsHeight, data[0]["5p_UTR"]]
                 utrP5.push(bind);
             }
 
@@ -386,8 +324,8 @@
 
             //绘制3p_UTR
             utrP3 = [];
-            for (let i = 0; i < sampleNames.length; i++) {
-                let bind = [geneEnd - data[0]["3p_UTR"] + start, sampleNames[i], gsHeight, data[0]["3p_UTR"]]
+            for (let i = 0; i < data[0].name.length; i++) {
+                let bind = [geneEnd - data[0]["3p_UTR"] + start, data[0].name[i], gsHeight, data[0]["3p_UTR"]]
                 utrP3.push(bind);
             }
 
@@ -398,10 +336,10 @@
 
             //绘制exon 
             exon = [];
-            for (let i = 0; i < sampleNames.length; i++) {
+            for (let i = 0; i < data[0].name.length; i++) {
                 let exonData = data[0].exon;
                 exonData.forEach(d => {
-                    let innerBind = [d[0], sampleNames[i], gsHeight, d[1] - d[0] + 1];
+                    let innerBind = [d[0], data[0].name[i], gsHeight, d[1] - d[0] + 1];
                     exon.push(innerBind);
                 })
             }
@@ -414,18 +352,17 @@
             del = [];
             ins = [];
             INDEL = variation.INDEL;
-            for (let i = 0; i < sampleNames.length; i++) {
+            for (let i = 0; i < data[0].name.length; i++) {
                 for (let j = 0; j < INDEL.length; j++) {
                     let item = INDEL[j];
                     if (item.type == 'DEL') {
                         if (item.stat_in_each_sample[i] == '1') {
-                            let bind = [item.position, sampleNames[i], gsHeightMin, item.length + start];
+                            let bind = [item.position, data[0].name[i], gsHeightMin, item.length + start];
                             del.push(bind);
                         }
                     } else if (item.type == 'INS') {
                         if (item.stat_in_each_sample[i] == '1') {
-                            let bind = [item.position, sampleNames[i], gsHeightMin, item.length + start];
-                            let _bind = [item.position, sampleNames[i], gsHeightMin, item.length + start]
+                            let bind = [item.position, data[0].name[i], gsHeightMin, item.length + start];
                             ins.push(bind);
                         }
                     }
@@ -433,105 +370,66 @@
             }
 
             del.forEach(d => {
-                graph.append("rect").attr("stroke", color.del).attr("fill", "white").attr("opacity", 1).attr("x", xScale(d[0] - d[3] / 2))
+                graph.append("rect").attr("stroke", color.del).attr("fill", "white").attr("opacity", 1).attr("x", xScale(d[0]))
                     .attr("y", yScale(d[1]) + bindHeight / 2 - d[2] / 2).attr("height", d[2]).attr("width", xScale(d[3]))
                     .style("stroke-dasharray", "4, 4").style("stroke-width", '1.5');
 
                 // top graph
-                xAxisGroupTop.append('rect').attr("x", xScale(d[0] - d[3] / 2)).attr("y", "-4").attr("stroke", color.del).attr("fill", "white")
+                xAxisGroupTop.append('rect').attr("x", xScale(d[0])).attr("y", "-4").attr("stroke", color.del).attr("fill", "white")
                     .attr("width", xScale(d[3])).attr("height", "8").attr("text-anchor", "middle")
                     .style("stroke-dasharray", "4, 4").style("stroke-width", '1.5');
             })
 
             ins.forEach(d => {
-                // graph.append("rect").attr("fill", color.ins).attr("opacity", 1).attr("x", xScale(d[0]))
-                //     .attr("y", yScale(d[1]) + bindHeight / 2 - d[2] / 2).attr("height", d[2]).attr("width", xScale(d[3]));
-                // xAxisGroupTop.append('rect').attr("x", xScale(d[0])).attr("y", "-4").attr("fill", color.ins)
-                //     .attr("width", xScale(d[3])).attr("height", "8").attr("text-anchor", "middle");
+                graph.append("rect").attr("fill", color.ins).attr("opacity", 1).attr("x", xScale(d[0]))
+                    .attr("y", yScale(d[1]) + bindHeight / 2 - d[2] / 2).attr("height", d[2]).attr("width", xScale(d[3]));
 
-                graph.append("path").attr("class", "ins").attr("fill", "none").attr("stroke", color.ins).attr("stroke-width", 2)
-                    .attr("d", `M ${xScale(d[0] - d[3] / 2)} ${yScale(d[1])} L ${xScale(d[0] + d[3] / 2)} ${yScale(d[1])} 
-                        L ${xScale(d[0])} ${yScale(d[1])} L ${xScale(d[0])} ${yScale(d[1]) + bindHeight / 2 - d[2] / 2}`)
-
-                xAxisGroupTop.append("path").attr("class", "ins").attr("fill", "none").attr("stroke", color.ins).attr("stroke-width", 2)
-                    .attr("d", `M ${xScale(d[0] - delta)} 7 L ${xScale(d[0] + delta)} 7
-                        L ${xScale(d[0])} -8 L ${xScale(d[0] - delta)} 7`).attr("text-anchor", "middle");
+                xAxisGroupTop.append('rect').attr("x", xScale(d[0])).attr("y", "-4").attr("fill", color.ins)
+                    .attr("width", xScale(d[3])).attr("height", "8").attr("text-anchor", "middle");
             })
 
             //绘制sv
             svDel = [];
             svDup = [];
-            svIns = [];
             SV = variation.SV;
-            for (let i = 0; i < sampleNames.length; i++) {
+            for (let i = 0; i < data[0].name.length; i++) {
                 for (let j = 0; j < SV.length; j++) {
                     let item = SV[j];
                     if (item.type == 'DEL') {
                         if (item.stat_in_each_sample[i] == '1') {
-                            let bind = [item.position, sampleNames[i], gsHeightMin, item.length + start];
+                            let bind = [item.position, data[0].name[i], gsHeightMin, item.length + start];
                             svDel.push(bind);
                         }
                     } else if (item.type == 'DUP') {
                         if (item.stat_in_each_sample[i] == '1') {
-                            let bind = [item.position, sampleNames[i], gsHeightMin, item.length + start];
+                            let bind = [item.position, data[0].name[i], gsHeightMin, item.length + start];
                             svDup.push(bind);
-                        }
-                    } else if (item.type == 'INS') {
-                        if (item.stat_in_each_sample[i] == '1') {
-                            let bind = [item.position, sampleNames[i], gsHeightMin, item.length + start];
-                            svIns.push(bind);
                         }
                     }
                 }
             }
 
-            svIns.forEach(d => {
-                graph.append("path").attr("class", "svins").attr("fill", "none").attr("stroke", color.svIns).attr("stroke-width", 2)
-                    .attr("d", `M ${xScale(d[0])} ${yScale(d[1]) + pathMoveY} L ${xScale(d[0] + d[3])} ${yScale(d[1]) + pathMoveY} 
-                        L ${xScale(d[0] + d[3] / 2)} ${yScale(d[1]) + pathMoveY} L ${xScale(d[0] + d[3] / 2)} ${yScale(d[1]) + bindHeight / 2 - d[2] / 2}`)
-
-                xAxisGroupTop.append("path").attr("class", "svins").attr("fill", "none").attr("stroke", color.svIns).attr("stroke-width", 2)
-                    .attr("d", `M ${xScale(d[0] - delta)} 7 L ${xScale(d[0] + delta)} 7
-                        L ${xScale(d[0])} -8 L ${xScale(d[0] - delta)} 7`).attr("text-anchor", "middle");
-            })
-
             svDel.forEach(d => {
-                graph.append("rect").attr("stroke", color.svDel).attr("fill", "white").attr("opacity", 1).attr("x", xScale(d[0] - d[3] / 2))
-                    .attr("y", yScale(d[1]) + bindHeight / 2 - d[2] / 2).attr("height", d[2]).attr("width", xScale(d[3]))
-                    .style("stroke-dasharray", "4, 4").style("stroke-width", '1.5');
+                graph.append("rect").attr("fill", color.svDel).attr("opacity", 1).attr("x", xScale(d[0]))
+                    .attr("y", yScale(d[1]) + bindHeight / 2 - d[2]).attr("height", d[2] / 2).attr("width", xScale(d[3]));
 
-                xAxisGroupTop.append('rect').attr("x", xScale(d[0] - d[3] / 2)).attr("y", "-2").attr("stroke", color.svDel).attr("fill", "white")
-                    .attr("width", xScale(d[3])).attr("height", "6").attr("text-anchor", "middle")
-                    .style("stroke-dasharray", "4, 4").style("stroke-width", '1.5');
-
-                // graph.append("path").attr("class", "svdel").attr("fill", "none").attr("stroke", color.svDel).attr("stroke-width", 2)
-                //     .attr("d", `M ${xScale(d[0])} ${yScale(d[1]) + pathMoveY} L ${xScale(d[0] + d[3])} ${yScale(d[1]) + pathMoveY} 
-                //         L ${xScale(d[0] + d[3] / 2)} ${yScale(d[1]) + pathMoveY} L ${xScale(d[0] + d[3] / 2)} ${yScale(d[1]) + bindHeight / 2 - d[2] / 2}`)
-
-                // xAxisGroupTop.append("path").attr("class", "svdel").attr("fill", "none").attr("stroke", color.svDel).attr("stroke-width", 2)
-                //     .attr("d", `M ${xScale(d[0])} -4 L ${xScale(d[0] + d[3])} -4
-                //         L ${xScale(d[0] + d[3] / 2)} -4 L ${xScale(d[0] + d[3] / 2)} 1`).attr("text-anchor", "middle");
+                xAxisGroupTop.append('rect').attr("x", xScale(d[0])).attr("y", "-6").attr("fill", color.svDel)
+                    .attr("width", xScale(d[3])).attr("height", "4").attr("text-anchor", "middle");
             })
 
             svDup.forEach(d => {
-                // graph.append("path").attr("class", "svdup").attr("fill", "none").attr("stroke", color.svDup).attr("stroke-width", 2)
-                //     .attr("d", `M ${xScale(d[0])} ${yScale(d[1]) + pathMoveY} L ${xScale(d[0] + d[3])} ${yScale(d[1]) + pathMoveY} 
-                //         L ${xScale(d[0] + d[3] / 2)} ${yScale(d[1]) + pathMoveY} L ${xScale(d[0] + d[3] / 2)} ${yScale(d[1]) + bindHeight / 2 - d[2] / 2}`)
+                graph.append("rect").attr("fill", color.svDup).attr("opacity", 1).attr("x", xScale(d[0]))
+                    .attr("y", yScale(d[1]) + bindHeight / 2 - d[2]).attr("height", d[2] / 2).attr("width", xScale(d[3]));
 
-                // xAxisGroupTop.append("path").attr("class", "ins").attr("fill", "none").attr("stroke", color.svDup).attr("stroke-width", 2)
-                //     .attr("d", `M ${xScale(d[0])} -4 L ${xScale(d[0] + d[3])} -4
-                //         L ${xScale(d[0] + d[3] / 2)} -4 L ${xScale(d[0] + d[3] / 2)} 1`).attr("text-anchor", "middle");
-                graph.append("rect").attr("fill", color.svDup).attr("opacity", 1).attr("x", xScale(d[0] - d[3] / 2))
-                    .attr("y", yScale(d[1]) + bindHeight / 2 - d[2] / 2).attr("height", d[2]).attr("width", xScale(d[3]));
-                xAxisGroupTop.append('rect').attr("x", xScale(d[0] - d[3] / 2)).attr("y", "-4").attr("fill", color.svDup)
-                    .attr("width", xScale(d[3])).attr("height", "8").attr("text-anchor", "middle");
+                xAxisGroupTop.append('rect').attr("x", xScale(d[0])).attr("y", "-6").attr("fill", color.svDup)
+                    .attr("width", xScale(d[3])).attr("height", "4").attr("text-anchor", "middle");
             })
 
             //绘制CN 
             _cn = [];
             CN = variation.CN;
-            for (let i = 0; i < sampleNames.length; i++) {
-                let text = [xScaleMax + 400, sampleNames[i], gsHeightMin, CN[i]];
+            for (let i = 0; i < data[0].name.length; i++) {
+                let text = [xScaleMax + 400, data[0].name[i], gsHeightMin, CN[i]];
                 _cn.push(text);
             }
 
@@ -544,10 +442,10 @@
             //draw SNP
             _snp = [];
             SNP = variation.SNP;
-            for (let i = 0; i < sampleNames.length; i++) {
+            for (let i = 0; i < data[0].name.length; i++) {
                 for (let j = 0; j < SNP.length; j++) {
                     let item = SNP[j];
-                    let bind = [item.position, sampleNames[i], gsHeightMin, item.stat_in_each_sample[i]];
+                    let bind = [item.position, data[0].name[i], gsHeightMin, item.stat_in_each_sample[i]];
                     _snp.push(bind);
                     snpPosition.push(item.position);
                 }
@@ -557,9 +455,10 @@
                 graph.append("text").attr("opacity", 0).attr("x", xScale(d[0]))
                     .attr("y", yScale(d[1]) + bindHeight / 2 + 10).text(d[3]).attr("class", "snp")
                     .attr("font-size", '1em').attr("text-anchor", 'start');
-                xAxisGroupTop.append('circle').attr("cx", xScale(d[0])).attr("cy", "0").attr("r", snp_r).attr("fill", color.snp);
             })
         }
+
+        renderInit(data);
 
         let createTooltip = function (el) {
             el
@@ -577,8 +476,7 @@
 
         // show text following line 
         const showText = function (xPosition, yPosition, withMouseOut) {
-            let textShowDeviation = 120;
-            let xPositionMappingAxis = Math.round(xPosition * xScaleMax / geneLength);
+            let textShowDeviation = 80;
             if (withMouseOut !== undefined) {
                 if (withMouseOut) {
                     svg.select("text.show-text")
@@ -587,21 +485,12 @@
                         .attr("y", yPosition)
                 }
             } else {
-                if (xPositionMappingAxis > xScaleMax / 2) {
-                    svg.select("text.show-text")
-                        .text(xPositionMappingAxis + 3)
-                        .attr("x", xPosition + textShowDeviation)
-                        .attr("y", margin.top - 5)
-                } else {
-                    svg.select("text.show-text")
-                        .text(xPositionMappingAxis + 1)
-                        .attr("x", xPosition + textShowDeviation)
-                        .attr("y", margin.top - 5)
-                }
-
+                svg.select("text.show-text")
+                    .text(xPosition)
+                    .attr("x", xPosition + textShowDeviation)
+                    .attr("y", yPosition + textShowDeviation)
             }
         }
-        // array Deduplication
         function unique(arr) {
             return Array.from(new Set(arr));
         }
@@ -617,23 +506,21 @@
             let changeSNP = uniqueSNP.map(item => Math.round(item));
 
             // snpPosition.includes(changeToXScale)
-            changeSNP.forEach(item => {
-                if (changeToXScale - snp_r + 3 < item && item < changeToXScale + snp_r - 3) {
-                    ix = changeSNP.indexOf(item);
-                    currentX = uniqueSNP[ix];
-                    $(".snp").each(function () {
-                        if ($(this).attr("x") === currentX) {
-                            $(this).attr("opacity", 1)
-                        } else (
-                            $(this).attr("opacity", 0)
-                        )
-                    });
-                } else {
-                    $(".snp").each(function () {
+            if (changeSNP.indexOf(changeToXScale) != -1) {
+                ix = changeSNP.indexOf(changeToXScale);
+                currentX = uniqueSNP[ix];
+                $(".snp").each(function () {
+                    if ($(this).attr("x") === currentX) {
+                        $(this).attr("opacity", 1)
+                    } else (
                         $(this).attr("opacity", 0)
-                    });
-                }
-            })
+                    )
+                });
+            } else {
+                $(".snp").each(function () {
+                    $(this).attr("opacity", 0)
+                });
+            }
         }
 
         const drawLine = function () {
@@ -680,7 +567,6 @@
 
                 })
         }
-        renderInit(data);
         drawLine();
     </script>
 </body>
