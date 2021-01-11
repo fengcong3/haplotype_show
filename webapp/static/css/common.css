@@ -170,6 +170,10 @@ div.navigation a {
 .haplotype-wrapper {
   display: flex;
   flex-flow: column wrap;
+  /* text-align: center; */
+}
+
+.haplotype-plot {
   text-align: center;
 }
 
@@ -208,10 +212,95 @@ div.navigation a {
   line-height: 20px;
 }
 
+
+.hide {
+  opacity: 0;
+}
+
+input[type="submit"] {
+  cursor: pointer;
+}
+
+.haplotype-refs {
+  position: relative;
+  margin: 17px 0 0 0;
+  display: block;
+}
+
+.pagination {
+  margin: 17px 0;
+  text-align: center;
+  display: block;
+}
+
+.showCurrentPage {
+  height: 24px;
+  width: 24px;
+  text-align: center;
+  line-height: 24px;
+  border: 1px solid #000;
+  display: inline-block;
+}
+
+span {
+  margin: 0 0 0 2px;
+}
+
+.contentwrap {
+  width: 98%;
+  margin: 0 auto;
+  padding: 10px;
+}
+
+ul {
+  list-style: none;
+  margin: 5px 0 0 0;
+  /* padding-left: 20px; */
+  text-align: center;
+}
+
+ul.tab {
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 1px;
+  height: 30px;
+  line-height: 30px;
+  color: #696969;
+}
+
+ul.tab li {
+  float: left;
+  font-family: "微软雅黑";
+  cursor: pointer;
+  padding: 0px;
+}
+
+ul.tab li.li {
+  padding: 0px 25px 0px;
+  font-size: 13px;
+  height: 30px;
+  line-height: 30px;
+  background: #F4F5F9;
+  border-top: 1px solid #C5D0DC;
+  border-left: 1px solid #C5D0DC;
+  border-bottom: 1px solid #C5D0DC;
+}
+
+ul.tab li.current {
+  border-bottom: 0px;
+  border-top: 2px solid #7599DE;
+  font-size: 13px;
+  color: #343434;
+  background: #FFFFFF;
+}
+
+ul.tab li.li:last-child {
+  border-right: 1px solid #C5D0DC;
+}
+
 .haplotype-table {
   flex: 1;
-  /* width: 100%; */
-  padding: 10px;
+  width: 100%;
+  /* padding: 10px; */
 }
 
 .haplotype-table .tbl-header {
@@ -219,7 +308,7 @@ div.navigation a {
 }
 
 .haplotype-table table {
-  width: 95%;
+  width: 96%;
   table-layout: fixed;
   color: #000;
   max-height: 75%;
@@ -259,13 +348,6 @@ tr {
   border: 1px solid rgba(0, 0, 0, 0.3);
 }
 
-.haplotype-table table {
-  width: 95%;
-  table-layout: fixed;
-  color: #000;
-  max-height: 75%;
-}
-
 tbody {
   display: table-row-group;
   vertical-align: middle;
@@ -278,40 +360,4 @@ tbody {
   font-weight: 300;
   font-size: 12px;
   border-bottom: solid 1px rgba(0, 0, 0, 0.1);
-}
-
-.hide {
-	opacity: 0;
-}
-
-input[type="submit"] {
-    cursor: pointer;
-}
-
-.haplotype-refs {
-    position: relative;
-    margin: 17px 0;
-    display: inline-block;
-}
-
-.next {
-    margin: 17px 0;
-    display: inline-block;
-    margin-left: 600px;
-}
-
-button {
-    background-color: #f66f6a;
-    color: white;
-    width: 100px;
-    height: 45px;
-    border: 0;
-    font-size: 16px;
-    box-sizing: content-box;
-    border-radius: 5px;
-    margin: 0 15px;
-}
-
-button:hover {
-    background-color: #a54b4a;
 }
