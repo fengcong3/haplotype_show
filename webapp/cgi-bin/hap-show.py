@@ -11,6 +11,7 @@ import smtplib
 from urllib.parse import unquote
 import json
 import sys
+import os
 def get_environ(environ):
     # rquest_method = environ["REQUEST_METHOD"]
     # str = "rquest_method:" + rquest_method + "\r\n"
@@ -40,18 +41,21 @@ def myapp(environ, start_response):
     
     gene= unquote(split_l[0].split("name=")[1],'utf-8')
 
-    ret_json = {}
-    try:
-        with open("/var/www/hap.bioinf.club/webapp//gene_data/%s.json"%(gene),'r') as load_f:
-            ret_json = json.load(load_f)   
-    except Exception:
-        ret_json = {}
-    js = json.dumps(ret_json)
-
+    #ret_json = {}
+    #try:
+    #    with open("/var/www/hap.bioinf.club/webapp//gene_data/%s.json"%(gene),'r') as load_f:
+    #        ret_json = json.load(load_f)   
+    #except Exception:
+    #    ret_json = {}
+    #js = json.dumps(ret_json)
+    stat=os.system("cd /var/www/hap.bioinf.club/webapp/gene_data; ls %s* ; if [ $? -ne 0 ];then ln -s /var/www/hap.bioinf.club/gene_data/%s.* .; fi; cd -;"%(gene,gene))
+    #os.system("echo 11 > /var/www/hap.bioinf.club/webapp/gene_data/test.out")   
     start_response('200 OK', [('Content-Type', 'text/plain')])
     
-
-    return js
+    if not stat :
+        return "OK"
+    else:
+        return "notOK"
 
     
     
