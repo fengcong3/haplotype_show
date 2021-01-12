@@ -9,6 +9,8 @@
     <!-- jQuery first, then D3.js, then Bootstrap JS -->
     <script type="text/javascript" src="../static/js/jquery.min.js"></script>
     <script type="text/javascript" src="../static/js/d3.v6.min.js"></script>
+    <script type="text/javascript" src="../static/js/main.js"></script>
+    <link rel="stylesheet" href="../static/css/phylotree.css">
     <link rel="stylesheet" href="../static/css/common.css">
     <script type="text/javascript" src="../static/js/haplotype-plot.js"></script>
     <script type="text/javascript" src="../static/js/utils.js"></script>
@@ -26,10 +28,10 @@
     <main class="main">
         <div id="haplotype" class="haplotype-warapper" style="display: block;">
             <div class="haplotype-control">
-                <form action="/cgi-bin/hap-show.py" accept-charset="UTF-8" method="post" class="haplotype-form">
+                <form accept-charset="UTF-8" method="post" class="haplotype-form">
                     <input type="text" name="name" class="gene-select" id="name" placeholder="gene name"
                         data-rule="minlen:4" data-msg="Please enter at least 4 chars">
-                    <input type="submit" name="commit" value="show">
+                    <button type="button" class="form-btn" onclick="handleClickSubmit()">show</button>
                 </form>
             </div>
             <div class="haplotype-refs" dir="auto">
@@ -129,9 +131,9 @@
             </div>
         </div>
     </main>
-    <!-- <footer>
-        <span>这是footer</span>
-    </footer> -->
+    <footer>
+        <div id="gene-tree"></div>
+    </footer>
 
     <script type="text/javascript">
         let containerId = "d3-plot";
@@ -269,7 +271,7 @@
         let xScaleMax, start, ori;
         let gsHeight = 28;
         let gsHeightMin = 12;
-        let snp_r = 3;
+        let snp_r = 2.5;
         let pathMoveY = 10;
         let delta = 50;
         let snpPosition = [];
@@ -587,7 +589,7 @@
 
             // snpPosition.includes(changeToXScale)
             changeSNP.forEach(item => {
-                if (changeToXScale - snp_r * 2 < item && item < changeToXScale + snp_r * 2) {
+                if (changeToXScale - snp_r - 1 < item && item < changeToXScale + snp_r + 1) {
                     ix = changeSNP.indexOf(item);
                     currentX = uniqueSNP[ix];
                     $(".snp").each(function () {
@@ -870,6 +872,33 @@
                 } 
             }); 
         }
+        let submitName = "";
+        function handleClickSubmit() {
+            submitName =  $(".gene-select").val();
+            console.log(submitName);
+            // http://hap.bioinf.club/
+            if (submitName != "") {
+                $.ajax({
+                    type: "POST",
+                    url: "http://hap.bioinf.club/cgi-bin/hap-show.py",
+                    data: {"name": submitName, "commit": "show"},
+                    contentType: "application/x-www-form-urlencoded",
+                    async: true,
+                    success: function (data) {
+                        console.log(data);
+                    },
+                    error: function (err) {
+                        console.log(err);
+                    }
+                });
+            } else {
+                alert("Please enter gene name");
+            } 
+        }
+        
+    </script>
+    <script type="module">
+        import {Tree,FigTree,rectangularLayout,branch,circle,tipLabel,internalNodeLabel} from "../static/js/main.js"
     </script>
 </body>
 
