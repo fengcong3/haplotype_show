@@ -24,7 +24,7 @@ def get_gene_structure(chr_name,gene_name,gff_file):
     sys.stderr.write("resolve Gene structure ...\n")
     '''
     "gene_structure":{
-        "gene":[[1,8200]],
+        "gene":[[2001,8200]],
         "gene_name":"TraesCS1A02G000100.1",
         "upstream":[[1,2000]],
         "5p_UTR":[[2001,2050]],
@@ -210,12 +210,12 @@ def deal_indel(chr_name,indel_sample_order,gene_structure,indel_file):
             "position":6500,
             "length":700,
             "stat_in_each_sample":[
-                0,
-                0,
-                0,
-                0,
-                0,
-                1
+                "0",
+                "0",
+                "0",
+                "0",
+                "0",
+                "1"
             ]
         }
     '''
@@ -316,12 +316,12 @@ def deal_sv(chr_name,sv_sample_order,gene_structure,sv_file,part_len):
             "position":6500,
             "length":700,
             "stat_in_each_sample":[
-                0,
-                0,
-                0,
-                0,
-                0,
-                1
+                "0",
+                "0",
+                "0",
+                "0",
+                "0",
+                "1"
             ]
         }
     '''
@@ -513,7 +513,7 @@ def hap_clustering(sample_order,SNP_item_list,INDEL_item_list,SV_item_list,CN_li
             "position":6500,
             "length":700,
             "stat_in_each_sample":[
-                0,                0,                0,                0,                0,                1
+                "0",                "0",                "0",                "0",                "0",                "1"
             ]
         }
     '''
@@ -522,7 +522,7 @@ def hap_clustering(sample_order,SNP_item_list,INDEL_item_list,SV_item_list,CN_li
             "position":6500,
             "length":700,
             "stat_in_each_sample":[
-                0,                0,                0,                0,                0,                1
+                "0",                "0",                "0",                "0",                "0",                "1"
             ]
         }
     '''
@@ -542,8 +542,8 @@ def hap_clustering(sample_order,SNP_item_list,INDEL_item_list,SV_item_list,CN_li
             sample_variants[sample].append(indel_item["stat_in_each_sample"][index])
         for sv_item in SV_item_list:
             sample_variants[sample].append(sv_item["stat_in_each_sample"][index])
-        for cn in CN_list:
-            sample_variants[sample].append(CN_list[index])
+        ##CN
+        sample_variants[sample].append(CN_list[index])
 
     #this list will be returned
     sample_order_and_hap_cluster_inf=[] #[(sample1,0),(sample2,1),...] sample_name and cluster index
@@ -573,6 +573,7 @@ def hap_clustering(sample_order,SNP_item_list,INDEL_item_list,SV_item_list,CN_li
             #judge it has been clustering
             if not already_confirm_cluster:
                 cluster_inf.append(sample_variants[sample])
+                # print(len(sample_variants[sample]))
                 sample_order_and_hap_cluster_inf.append((sample,len(cluster_inf)-1))
     
     #clustering complete ,now,return
@@ -592,7 +593,7 @@ def resolve_hap_seq(INDEL_inf_item_list,SV_inf_item_list,ref_file,chr_name,gene_
     sys.stderr.write("haplotype sequence resolving ...\n")
     '''
     "gene_structure":{
-        "gene":[[1,8200]],
+        "gene":[[2001,8200]],
         "gene_name":"TraesCS1A02G000100.1",
         "upstream":[[1,2000]],
         "5p_UTR":[[2001,2050]],
@@ -636,7 +637,7 @@ def resolve_hap_seq(INDEL_inf_item_list,SV_inf_item_list,ref_file,chr_name,gene_
             variant_index+=1 ## move forward
 
         for indel_index,indel_item in enumerate(INDEL_item_list) :
-            if sample_variants_list[variant_index]==1:
+            if sample_variants_list[variant_index]=="1":
                 if indel_item["type"] == "INS":
                     hap_seq[indel_item["position"]-fasta_origin[0]] = INDEL_inf_item_list[indel_index]["alt"]
                 elif indel_item["type"] == "DEL":
@@ -648,19 +649,25 @@ def resolve_hap_seq(INDEL_inf_item_list,SV_inf_item_list,ref_file,chr_name,gene_
             variant_index+=1 ## move forward
 
         for sv_index,sv_item in enumerate(SV_item_list):
-            if sample_variants_list[variant_index]==1:
+            if sample_variants_list[variant_index]=="1":
                 if sv_item["type"] == "INS":
                     hap_seq[sv_item["position"]-fasta_origin[0]] = SV_inf_item_list[sv_index]["alt"]
                 elif sv_item["type"] == "DEL":
                     #make the position's later to null string
                     for i in range(1,sv_item["length"]):
+                        if i>len(hap_seq)-1:
+                            break
                         hap_seq[sv_item["position"]-fasta_origin[0]+i] = ''
                 elif sv_item["type"] == "DUP":
                     ## deal it or not ?
-                    hap_seq[sv_item["position"]-fasta_origin[0]+sv_item["length"]-1] = hap_seq[sv_item["position"]-fasta_origin[0]:sv_item["position"]-fasta_origin[0]+sv_item["length"]]
+                    # print(sv_item["position"]-fasta_origin[0]+sv_item["length"]-1,sv_item["position"]-fasta_origin[0],sv_item["position"]-fasta_origin[0]+sv_item["length"])
+                    # hap_seq[sv_item["position"]-fasta_origin[0]+sv_item["length"]-1] = hap_seq[sv_item["position"]-fasta_origin[0] : sv_item["position"]-fasta_origin[0]+sv_item["length"]]
+                    pass
                 else:
                     sys.stderr.write("\tresolving SV error\n")                
             variant_index+=1 ## move forward
+        # print(len(sample_variants_list),variant_index)
+        # print(sample_variants_list)
         ouf.write(">%s_hap%d\n"%(gene_structure["gene_name"].split(".")[0],hap_index+1))
         ouf.write("".join(hap_seq)+"\n")
 
