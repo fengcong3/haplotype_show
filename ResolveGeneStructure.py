@@ -574,8 +574,8 @@ if __name__ == "__main__":
             "CN":CN
             }
     }
-    js = json.dumps(output_dict, sort_keys=True, indent=4, separators=(',', ':'))
-    # js = json.dumps(output_dict)
+    #js = json.dumps(output_dict, sort_keys=True, indent=4, separators=(',', ':'))
+    js = json.dumps(output_dict)
     ouf = open(output_file+".json","w")
     ouf.write(js)
     ouf.close()
