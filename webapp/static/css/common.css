@@ -175,6 +175,7 @@ div.navigation a {
 
 .haplotype-plot {
   text-align: center;
+  width: 98%;
 }
 
 .haplotype-control {
@@ -300,7 +301,7 @@ ul.tab li.li:last-child {
 .haplotype-table {
   flex: 1;
   width: 100%;
-  /* padding: 10px; */
+  cursor: pointer;
 }
 
 .haplotype-table .tbl-header {
@@ -308,56 +309,65 @@ ul.tab li.li:last-child {
 }
 
 .haplotype-table table {
-  width: 96%;
+  width: 98%;
   table-layout: fixed;
   color: #000;
-  max-height: 75%;
-}
-
-table {
+  max-height: 95%;
   border-collapse: collapse;
   border-spacing: 0;
   background-color: transparent;
 }
 
-thead {
+
+.tbl-header thead {
   display: table-header-group;
   vertical-align: middle;
   border-color: inherit;
 }
 
-tr {
-  display: table-row;
-  vertical-align: inherit;
-  border-color: inherit;
+
+
+.tbl-header td {
+  text-align: center;
+  font-weight: 500;
+  font-size: 15px;
+  color: #fff;
+  background-color: rgba(0, 0, 0, 0.6);
+  white-space: nowrap;
+  height: 25px;
+  line-height: 25px;
 }
 
-.tbl-header th {
-  text-align: right;
-  font-weight: 500;
-  font-size: 12px;
-  color: #fff;
-  background: rgba(0, 0, 0, 0.6);
-  ;
-}
+/* .tbl-header tr td {
+    display: table-row;
+    vertical-align: inherit;
+    border-color: inherit;
+  } */
 
 .haplotype-table .tbl-content {
   height: 500px;
   overflow-x: scroll;
-  margin-top: 0px;
   border: 1px solid rgba(0, 0, 0, 0.3);
 }
 
-tbody {
+.tbl-content tbody {
   display: table-row-group;
   vertical-align: middle;
-  border-color: inherit;
 }
 
 .tbl-content tr {
-  text-align: right;
-  vertical-align: middle;
-  font-weight: 300;
-  font-size: 12px;
-  border-bottom: solid 1px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    vertical-align: middle;
+    font-weight: 300;
+    font-size: 13px;
+    border-bottom: solid 1px rgba(0,0,0,0.1);
+    display: table-row;
+    height: 25px;
+    line-height: 25px;
+}
+
+.tbl-content tr td {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow:ellipsis;
 }

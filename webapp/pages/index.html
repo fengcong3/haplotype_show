@@ -44,7 +44,7 @@
                         <rect x="226" y="18" width="34" height="10" fill="#800080"></rect>
                         <rect x="262" y="18" width="34" height="10" fill="#FFA500"></rect>
                         <rect x="298" y="18.5" width="34" height="10" fill="#00FFFF"></rect>
-                        <rect x="334" y="18" width="34" height="10" fill="#FF4500"></rect>
+                        <rect x="334" y="18" width="34" height="10" fill="#FF00FF"></rect>
                         <rect x="370" y="18" width="34" height="10" fill="#1E90FF"></rect>
                         <rect x="406" y="18" width="34" height="10" fill="yellow"></rect>
                     </g>
@@ -108,64 +108,20 @@
             </div>
             <div id="contentwrap" class="contentwrap">
                 <ul class="tab" id="tab">
-                    <li id="li_stage" class="li current">
-                        <span>INDEL</span>
-                    </li>
+                    <li id="li_stage" class="li current"><span>INDEL</span></li>
                     <li id="li_class" class="li"><span>SNP</span></li>
                     <li id="li_photo" class="li"><span>SV</span></li>
                 </ul>
                 <div class="haplotype-table">
                     <div class="tbl-header">
                         <table>
-                            <thead>
-                                <tr>
-                                    <th>chr</th>
-                                    <th>position</th>
-                                    <th>length</th>
-                                    <th>ref</th>
-                                    <th>alt</th>
-                                    <th>type</th>
-                                    <th>allele</th>
-                                    <th>Annotation</th>
-                                    <th>Gene_Name</th>
-                                    <th>Feature_ID</th>
-                                    <th>HGVS.c</th>
-                                    <th>HGVS.p</th>
-                                </tr>
+                            <thead class="tbl-head-data">
                             </thead>
                         </table>
                     </div>
                     <div class="tbl-content">
                         <table>
-                            <tbody>
-                                <tr>
-                                    <td>1</td>
-                                    <td>LongReach Lancer</td>
-                                    <td>40,000,000</td>
-                                    <td>485,000,000</td>
-                                    <td>445,000,000</td>
-                                    <td>1</td>
-                                    <td>LongReach Lancer</td>
-                                    <td>40,000,000</td>
-                                    <td>485,000,000</td>
-                                    <td>445,000,000</td>
-                                    <td>1</td>
-                                    <td>LongReach Lancer</td>
-                                </tr>
-                                <tr>
-                                    <td>1</td>
-                                    <td>Jagger</td>
-                                    <td>35,000,000</td>
-                                    <td>485,000,000</td>
-                                    <td>450,000,000</td>
-                                    <td>1</td>
-                                    <td>LongReach Lancer</td>
-                                    <td>40,000,000</td>
-                                    <td>485,000,000</td>
-                                    <td>445,000,000</td>
-                                    <td>1</td>
-                                    <td>LongReach Lancer</td>
-                                </tr>
+                            <tbody class="tbl-body-data">
                             </tbody>
                         </table>
                     </div>
@@ -278,13 +234,13 @@
             top: 50,
             right: 100,
             bottom: 10,
-            left: 60
+            left: 100
         })
         let color = ({
             ins: 'green',
             del: 'red',
-            utrP5: '#FF4500',
-            utrP3: '#FF4500',
+            utrP5: '#FF00FF',
+            utrP3: '#FF00FF',
             upstream: '#00FFFF',
             snp: 'blue',
             exon: '#1E90FF',
@@ -311,8 +267,8 @@
         let xScale, yScale;
         let lineLeft, lineRight, geneLength;
         let xScaleMax, start, ori;
-        let gsHeight = 35;
-        let gsHeightMin = 15;
+        let gsHeight = 28;
+        let gsHeightMin = 12;
         let snp_r = 3;
         let pathMoveY = 10;
         let delta = 50;
@@ -354,7 +310,7 @@
                 .attr("text-anchor", "end");
             const yAxis = d3.axisLeft(yScale);
             g.append('g').attr("class", "sample-name").call(yAxis).attr("class", "left-axis");
-
+            d3.selectAll(".top-axis text").attr("opacity", 0);
             //设置Variation
             variation = data[0].variation;
             let xAxisGroupTop = g.append('g').call(xAxis).attr('transform', `translate(${0}, ${-30})`)
@@ -570,7 +526,7 @@
                 graph.append("text").attr("opacity", 0).attr("x", xScale(d[0])).attr("class", "snp")
                     .attr("y", yScale(d[1]) + bindHeight / 2 + 10).text(d[3]).attr("class", "snp")
                     .attr("font-size", '1em').attr("text-anchor", 'start');
-                xAxisGroupTop.append('circle').attr("cx", xScale(d[0])).attr("cy", "0").attr("r", snp_r).attr("fill", color.snp);
+                xAxisGroup.append('circle').attr("cx", xScale(d[0])).attr("cy", "0").attr("r", snp_r).attr("fill", color.snp);
             })
         }
 
@@ -660,7 +616,7 @@
             const hoverText = svg.append("svg:g").attr("class", "hover-text").append("svg:text").attr("class", "show-text")
                 .attr("font-size", 16).attr("fill", "#333").text("").attr("x", 0).attr("y", 0);
             svg
-                .on("mousemove", function (event) {
+                .on("click", function (event) {
                     // get current mouse location, return [mouseX, mouseY]
                     let [x, y] = d3.pointer(event);
 
@@ -854,22 +810,65 @@
                 }
             });
         });
-        function showTableInit() {
-
-        }
+        csvDataToHtml("indel");
         function csvDataToHtml(tab) {
             console.log(tab);
-            let csvData;
             //let csvPath = "../gene_data/" + geneName.slice(0, -1) + tab + ".csv";
-            let csvPath = "../gene_data/TraesCS2D02G079600.snp.csv"
+            let csvPath = "../gene_data/TraesCS2D02G079600." + tab + ".csv"
             if (tab === "snp") {
-                csvData = d3.csv(csvPath);
-                console.log(csvData)
+                d3.csv(csvPath).then(function(data) {
+                    showTable(data);
+                })
             } else if (tab === "sv") {
-
+                d3.csv(csvPath).then(function(data) {
+                    showTable(data);
+                })
             } else if (tab === "indel") {
-
+                d3.csv(csvPath).then(function(data) {
+                    showTable(data);
+                })
             }
+        }
+        function showTable(data) {
+            columns = data.columns;
+            let theadHtml = "";
+            let tbodyHtml = ""
+            theadHtml += "<tr>";
+            columns.forEach( d => {
+                theadHtml +=     "<td>" + d + "</td>";
+            })
+            theadHtml += "</tr>";
+            data.forEach(d => {
+                tbodyHtml += "<tr>";
+                columns.forEach( di => {
+                    tbodyHtml +=     "<td>" + htmlEscape(d[di]) + "</td>";
+                })
+                tbodyHtml += "</tr>";
+            })
+            $(".tbl-head-data").html(theadHtml);
+            $(".tbl-body-data").html(tbodyHtml);
+        }
+        function showTableText() {
+            $(".tbl-content").mouseover( function() {
+                $("tbody tr").each(function(i) {
+                    $(this).children('td').each(function(j){
+                        // 设置title属性
+                        $(this).attr('title', $(this).text());
+                    });
+                })
+            })
+        }
+        showTableText();
+        // 特殊字符转义
+        function htmlEscape(text){ 
+            return text.replace(/[<>"&]/g, function(match, pos, originalText){
+                switch(match){
+                    case "<": return "&lt;"; 
+                    case ">":return "&gt;";
+                    case "&":return "&amp;"; 
+                    case "\"":return "&quot;"; 
+                } 
+            }); 
         }
     </script>
 </body>
