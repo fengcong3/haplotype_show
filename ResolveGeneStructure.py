@@ -3,6 +3,7 @@
 #usage:python __file__ -h
 
 #function:  generate a json file for plot. 
+#require : bcftools , bedtools
 
 #resovle gene structure according to SNP/SV/CNV matrix
 
@@ -16,6 +17,8 @@ import gzip
 
 Rscript="/public/home/fengcong/anaconda2/envs/R/bin/Rscript"
 py3="/public/home/fengcong/anaconda2/envs/py3/bin/python"
+bcftools="/public/agis/chengshifeng_group/fengcong/WGRS/software/bcftools1.9/bin/bcftools"
+bedtools="/public/agis/chengshifeng_group/fengcong/IPK_assembly/software/bedtools2/bin/bedtools"
 
 def get_gene_structure(chr_name,gene_name,gff_file):
     sys.stderr.write("resolve Gene structure ...\n")
@@ -134,7 +137,7 @@ def deal_SNP(chr_name,snp_sample_order,gene_structure,snp_file):
         need_region=[gene_structure["gene"][0][0],gene_structure["upstream"][0][1]]
 
     ##get the snp in the region
-    child = subprocess.Popen("bcftools view -r %s:%d-%d %s"%(chr_name,need_region[0],need_region[1],snp_file),shell=True,stdout=subprocess.PIPE)
+    child = subprocess.Popen("%s view -r %s:%d-%d %s"%(bcftools,chr_name,need_region[0],need_region[1],snp_file),shell=True,stdout=subprocess.PIPE)
     # output = child.communicate()
 
     #############################################template
@@ -235,7 +238,7 @@ def deal_indel(chr_name,indel_sample_order,gene_structure,indel_file):
         need_region=[gene_structure["gene"][0][0],gene_structure["upstream"][0][1]]
 
     ##get the snp in the region
-    child = subprocess.Popen("bcftools view -r %s:%d-%d %s"%(chr_name,need_region[0],need_region[1],indel_file),shell=True,stdout=subprocess.PIPE)
+    child = subprocess.Popen("%s view -r %s:%d-%d %s"%(bcftools,chr_name,need_region[0],need_region[1],indel_file),shell=True,stdout=subprocess.PIPE)
     #########################indel template
     INDEL=[]
     INDEL_item={
@@ -352,8 +355,8 @@ def deal_sv(chr_name,sv_sample_order,gene_structure,sv_file,part_len):
     
 
     ##check vcf.gz file
-    if indel_file.endswith(".gz"):
-        if os.path.exists(indel_file+".csi"):
+    if sv_file.endswith(".gz"):
+        if os.path.exists(sv_file+".csi"):
             pass
         else:
             sys.stderr.write("didnt find index file for the vcf.gz file\n")
@@ -364,7 +367,7 @@ def deal_sv(chr_name,sv_sample_order,gene_structure,sv_file,part_len):
 
     ##get the snp in the region
     
-    child = subprocess.Popen("bcftools view -r %s:%d-%d %s"%(need_chr,need_region[0],need_region[1],sv_file),shell=True,stdout=subprocess.PIPE)
+    child = subprocess.Popen("%s view -r %s:%d-%d %s"%(bcftools,need_chr,need_region[0],need_region[1],sv_file),shell=True,stdout=subprocess.PIPE)
     #########################SV template
     SV=[]
     SV_item={
@@ -576,6 +579,94 @@ def hap_clustering(sample_order,SNP_item_list,INDEL_item_list,SV_item_list,CN_li
     sys.stderr.write("cluster number: %d\n"%(len(cluster_inf)))
     return (sample_order_and_hap_cluster_inf,cluster_inf)
 
+def rep_idx_str(str,idx,char):
+    if 0<= idx < len(str)-1:
+        return str[:idx] + char + str[idx+1:]
+    elif idx ==  len(str)-1:
+        return str[:idx] + char
+    else:
+        sys.stderr.write("SNP rep error\n")
+        return str
+
+def resolve_hap_seq(INDEL_inf_item_list,SV_inf_item_list,ref_file,chr_name,gene_structure,cluster_inf,SNP_item_list,INDEL_item_list,SV_item_list,CN_list,outputprefix):
+    sys.stderr.write("haplotype sequence resolving ...\n")
+    '''
+    "gene_structure":{
+        "gene":[[1,8200]],
+        "gene_name":"TraesCS1A02G000100.1",
+        "upstream":[[1,2000]],
+        "5p_UTR":[[2001,2050]],
+        "exon":[[2051,3400],[5100,5700],[7300,8000]],
+        "3p_UTR":[[8001,8200]],
+        "ori":"+"
+    }
+    '''
+    #generate gene origin
+    fasta_origin=[]
+    if gene_structure["ori"] == "+":
+        fasta_origin=[gene_structure["upstream"][0][0],gene_structure["gene"][0][1]]
+    else:
+        fasta_origin=[gene_structure["gene"][0][0],gene_structure["upstream"][0][1]]
+
+    #output to bed file
+    ouf = open("%s.bed"%(outputprefix),"w")
+    ouf.write("%s\t%d\t%d\n"%(chr_name,fasta_origin[0]-1,fasta_origin[1]))
+    ouf.close()
+
+
+    #get the reference sequence 
+    child = subprocess.Popen("%s getfasta -fi %s -bed %s"%(bedtools,ref_file,outputprefix+".bed"),shell=True,stdout=subprocess.PIPE)
+    ref_seq=""
+    for line in child.stdout.readlines():
+        line = line.decode("utf-8")
+        if not line.startswith(">"):
+            ref_seq = line.strip()
+
+    #
+    ouf = open("%s.hap.fasta"%(outputprefix),"w")
+    for hap_index,sample_variants_list in enumerate(cluster_inf):
+        # for ,variant in enumerate(sample_variants_list):
+        hap_seq=[n for n in ref_seq]
+        # print(hap_seq)
+        variant_index = 0
+        for snp_item in SNP_item_list :
+            rep_char=sample_variants_list[variant_index][-1]  ##make three character to one char
+            # print(snp_item["position"],fasta_origin[0])
+            hap_seq[snp_item["position"]-fasta_origin[0]] = rep_char ## didnt check the position
+            variant_index+=1 ## move forward
+
+        for indel_index,indel_item in enumerate(INDEL_item_list) :
+            if sample_variants_list[variant_index]==1:
+                if indel_item["type"] == "INS":
+                    hap_seq[indel_item["position"]-fasta_origin[0]] = INDEL_inf_item_list[indel_index]["alt"]
+                elif indel_item["type"] == "DEL":
+                    #make the position's later to null string
+                    for i in range(1,indel_item["length"]):
+                        hap_seq[indel_item["position"]-fasta_origin[0]+i] = ''
+                else:
+                    sys.stderr.write("\tresolving indel error\n")                
+            variant_index+=1 ## move forward
+
+        for sv_index,sv_item in enumerate(SV_item_list):
+            if sample_variants_list[variant_index]==1:
+                if sv_item["type"] == "INS":
+                    hap_seq[sv_item["position"]-fasta_origin[0]] = SV_inf_item_list[sv_index]["alt"]
+                elif sv_item["type"] == "DEL":
+                    #make the position's later to null string
+                    for i in range(1,sv_item["length"]):
+                        hap_seq[sv_item["position"]-fasta_origin[0]+i] = ''
+                elif sv_item["type"] == "DUP":
+                    ## deal it or not ?
+                    hap_seq[sv_item["position"]-fasta_origin[0]+sv_item["length"]-1] = hap_seq[sv_item["position"]-fasta_origin[0]:sv_item["position"]-fasta_origin[0]+sv_item["length"]]
+                else:
+                    sys.stderr.write("\tresolving SV error\n")                
+            variant_index+=1 ## move forward
+        ouf.write(">%s_hap%d\n"%(gene_structure["gene_name"].split(".")[0],hap_index+1))
+        ouf.write("".join(hap_seq)+"\n")
+
+    ouf.close()
+            
+    
 
 
 
@@ -595,6 +686,8 @@ if __name__ == "__main__":
                            help="Structure variation matrix.")
     cmdparser.add_argument("-C", "--cnv", dest="cnv", type=str,
                            help="cnv matrix. ")
+    cmdparser.add_argument("-r", "--ref", dest="ref", type=str,
+                           help="reference path. ")
     # cmdparser.add_argument("-i", "--info", dest="info", type=str,required=True,
     #                        help="sample information.")
     cmdparser.add_argument("-o", "--outputprefix", dest="outputprefix", type=str,
@@ -614,6 +707,7 @@ if __name__ == "__main__":
     cnv_file = args.cnv  #can be ignore
     # inf_file = args.info
     chr_name= args.chr
+    ref_file = args.ref
     output_file = args.outputprefix
 
     ##gene_structure
@@ -653,7 +747,7 @@ if __name__ == "__main__":
     sample_order_and_hap_cluster_str = ["%s(hap%d)"%(tu[0],tu[1]+1) for tu in sample_order_and_hap_cluster_inf]
     
     #generate each hap's sequence
-    
+    resolve_hap_seq(INDEL_and_INF[1],SV_and_INF[1],ref_file,chr_name,gene_structure,cluster_inf,SNP_and_INF[0],INDEL_and_INF[0],SV_and_INF[0],CN,output_file)
     
 
     ##test ouput 
