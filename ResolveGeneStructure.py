@@ -474,7 +474,7 @@ def deal_cnv(gene_name,cnv_sample_order,cnv_file):
                 if gt[0] == 0 :
                     CN.append("1")
                 else:
-                    CN.append("N")
+                    CN.append("N") # this is the first version,dont have indeed copy number
 
         line = inf.readline()
     inf.close()
@@ -491,6 +491,93 @@ def filter_and_sort_cnv(CN,snp_sample_order,cnv_sample_order):
     
     CN = [CN[0][n] for  n in new_order_index]
     return CN
+
+def hap_clustering(sample_order,SNP_item_list,INDEL_item_list,SV_item_list,CN_list):
+    sys.stderr.write("haplotype clustering ...\n")
+    '''
+    "SNP":
+    [
+        {
+            "position":2500,
+            "stat_in_each_sample":[
+                "A",                "A/T",                "T",                "T",                "T",                "T"
+            ]
+        }
+    ]
+    '''
+    '''{
+            "type":"DEL",
+            "position":6500,
+            "length":700,
+            "stat_in_each_sample":[
+                0,                0,                0,                0,                0,                1
+            ]
+        }
+    '''
+    '''{
+            "type":"DEL", #DUP INV
+            "position":6500,
+            "length":700,
+            "stat_in_each_sample":[
+                0,                0,                0,                0,                0,                1
+            ]
+        }
+    '''
+    '''
+    "CN":[1,3,2,2,2,2]
+    '''
+    #init sample_variants dict
+    sample_variants={} #{sample1:[],sample2:[]}
+    for sample in sample_order:
+        sample_variants[sample] = []
+    
+    #append SNP/indel/sv/cnv for each sample
+    for index,sample in enumerate(sample_order):
+        for snp_item in SNP_item_list :
+            sample_variants[sample].append(snp_item["stat_in_each_sample"][index])
+        for indel_item in INDEL_item_list :
+            sample_variants[sample].append(indel_item["stat_in_each_sample"][index])
+        for sv_item in SV_item_list:
+            sample_variants[sample].append(sv_item["stat_in_each_sample"][index])
+        for cn in CN_list:
+            sample_variants[sample].append(CN_list[index])
+
+    #this list will be returned
+    sample_order_and_hap_cluster_inf=[] #[(sample1,0),(sample2,1),...] sample_name and cluster index
+
+    ##cluster information
+    cluster_inf=[]  #[[variants list1],[]]
+
+    #now, clustering 
+    for sample in sample_order:
+        if len(cluster_inf) == 0: #there is no hap cluster exist
+            cluster_inf.append(sample_variants[sample])
+            sample_order_and_hap_cluster_inf.append((sample,0))
+        else:
+            already_confirm_cluster=False
+            for index,hap in enumerate(cluster_inf):
+                equal=True #this sample == this hap
+                for variants_index in range(len(sample_variants[sample])):
+                    if sample_variants[sample][variants_index] == cluster_inf[index][variants_index]:
+                        pass
+                    else:
+                        equal=False
+                        break
+                #judge they equal or not 
+                if equal:
+                    sample_order_and_hap_cluster_inf.append((sample,index))
+                    already_confirm_cluster=True
+            #judge it has been clustering
+            if not already_confirm_cluster:
+                cluster_inf.append(sample_variants[sample])
+                sample_order_and_hap_cluster_inf.append((sample,len(cluster_inf)-1))
+    
+    #clustering complete ,now,return
+    sys.stderr.write("cluster number: %d\n"%(len(cluster_inf)))
+    return (sample_order_and_hap_cluster_inf,cluster_inf)
+
+
+
 
 if __name__ == "__main__":
     cmdparser = argparse.ArgumentParser(description="resolve gene structure")
@@ -561,12 +648,19 @@ if __name__ == "__main__":
     #filter cnv sample and sort
     CN=filter_and_sort_cnv(CN,snp_sample_order,cnv_sample_order)
 
+    #hap clustering
+    sample_order_and_hap_cluster_inf , cluster_inf = hap_clustering(snp_sample_order,SNP_and_INF[0],INDEL_and_INF[0],SV_and_INF[0],CN)
+    sample_order_and_hap_cluster_str = ["%s(hap%d)"%(tu[0],tu[1]+1) for tu in sample_order_and_hap_cluster_inf]
+    
+    #generate each hap's sequence
+    
     
 
     ##test ouput 
     output_dict={
         "gene_structure":gene_structure,
-        "sample_name":snp_sample_order,
+        #"sample_name":snp_sample_order,
+        "sample_name":sample_order_and_hap_cluster_str,
         "variation":{
             "SNP":SNP_and_INF[0],
             "INDEL":INDEL_and_INF[0],
