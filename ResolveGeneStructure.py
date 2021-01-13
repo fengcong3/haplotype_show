@@ -799,8 +799,21 @@ if __name__ == "__main__":
     #generate each hap's sequence
     resolve_hap_seq(INDEL_and_INF[1],SV_and_INF[1],ref_file,chr_name,gene_structure,cluster_inf,SNP_and_INF[0],INDEL_and_INF[0],SV_and_INF[0],CN,output_file)
     
+    #multi-algn and phylotree
+    stat = os.system("""
+    /public/agis/chengshifeng_group/xianwenfei/software/mafft-7.427-with-extensions/bin/mafft --anysymbol %s.hap.fasta > %s.hap.MSA ;
+    export OMP_NUM_THREADS=1;
+    /public/agis/chengshifeng_group/xianwenfei/software/Fasttree/FastTree  %s.hap.MSA >  %s.hap.newick;
+    """%(output_file,output_file,output_file,output_file)
+    )
+
+    if not stat:
+        sys.stderr.write("phylotree success!\n")
+    else:
+        sys.stderr.write("phylotree failed!\n")
 
     ##test ouput 
+    sys.stderr.write("now ouput json and csv file ...\n")
     output_dict={
         "gene_structure":gene_structure,
         #"sample_name":snp_sample_order,
