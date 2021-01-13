@@ -519,7 +519,7 @@ def cmp_hap_list(lista, listb):
 
 
 def cmp_sample_hap(tuplea,tupleb):
-    return tupleb[1] - tuplea[1]
+    return tuplea[1] - tupleb[1]
 
 def hap_clustering(sample_order,SNP_item_list,INDEL_item_list,SV_item_list,CN_list):
     sys.stderr.write("haplotype clustering ...\n")
