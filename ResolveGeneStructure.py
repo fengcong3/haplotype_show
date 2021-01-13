@@ -14,6 +14,7 @@ import json
 import subprocess
 import copy
 import gzip
+import functools
 
 Rscript="/public/home/fengcong/anaconda2/envs/R/bin/Rscript"
 py3="/public/home/fengcong/anaconda2/envs/py3/bin/python"
@@ -447,9 +448,19 @@ def filter_and_sort_sv(SV_and_INF,snp_sample_order,sv_sample_order):
     new_order_index=[]
     for i in snp_sample_order :
         new_order_index.append(sv_sample_order.index(i))
-    
+    # print(len(new_order_index))
     ##modify each SV item
     for item in SV_and_INF[0]:
+        # print(len(item["stat_in_each_sample"]))
+        item["stat_in_each_sample"] = [item["stat_in_each_sample"][n] for n in new_order_index]
+
+def filter_and_sort_snp_or_indel(SNP_and_INF,hap_sample_order,snp_sample_order):
+    new_order_index=[]
+    for i in hap_sample_order :
+        new_order_index.append(snp_sample_order.index(i))
+    
+    ##modify each SNP/INDEL item
+    for item in SNP_and_INF[0]:
         item["stat_in_each_sample"] = [item["stat_in_each_sample"][n] for n in new_order_index]
 
 
@@ -494,6 +505,21 @@ def filter_and_sort_cnv(CN,snp_sample_order,cnv_sample_order):
     
     CN = [CN[0][n] for  n in new_order_index]
     return CN
+
+def filter_and_sort_cnv2(CN,hap_sample_order,cnv_sample_order):
+    new_order_index=[]
+    for i in hap_sample_order :
+        new_order_index.append(cnv_sample_order.index(i))
+    
+    CN = [CN[n] for  n in new_order_index]
+    return CN
+
+def cmp_hap_list(lista, listb):
+    return listb.count("1")-lista.count("1")
+
+
+def cmp_sample_hap(tuplea,tupleb):
+    return tupleb[1] - tuplea[1]
 
 def hap_clustering(sample_order,SNP_item_list,INDEL_item_list,SV_item_list,CN_list):
     sys.stderr.write("haplotype clustering ...\n")
@@ -576,9 +602,19 @@ def hap_clustering(sample_order,SNP_item_list,INDEL_item_list,SV_item_list,CN_li
                 # print(len(sample_variants[sample]))
                 sample_order_and_hap_cluster_inf.append((sample,len(cluster_inf)-1))
     
+    #change hap order according to hap distance
+    # cluster_inf_sorted=[n for n in cluster_inf] #[[variants list1],[]]
+    cluster_inf_sorted = sorted(cluster_inf,key=functools.cmp_to_key(cmp_hap_list))
+    cluster_inf_index = [cluster_inf_sorted.index(n) for n in cluster_inf]
+    
+    #reassignment haplotype cluster for each sample
+    sample_order_and_hap_cluster_inf = [(n[0],cluster_inf_index[n[1]] ) for n in sample_order_and_hap_cluster_inf]
+    sample_order_and_hap_cluster_inf_sorted=sorted(sample_order_and_hap_cluster_inf,key=functools.cmp_to_key(cmp_sample_hap))
+
+
     #clustering complete ,now,return
     sys.stderr.write("cluster number: %d\n"%(len(cluster_inf)))
-    return (sample_order_and_hap_cluster_inf,cluster_inf)
+    return (sample_order_and_hap_cluster_inf_sorted,cluster_inf_sorted)
 
 def rep_idx_str(str,idx,char):
     if 0<= idx < len(str)-1:
@@ -752,7 +788,14 @@ if __name__ == "__main__":
     #hap clustering
     sample_order_and_hap_cluster_inf , cluster_inf = hap_clustering(snp_sample_order,SNP_and_INF[0],INDEL_and_INF[0],SV_and_INF[0],CN)
     sample_order_and_hap_cluster_str = ["%s(hap%d)"%(tu[0],tu[1]+1) for tu in sample_order_and_hap_cluster_inf]
-    
+    #reorder
+    hap_sample_order = [t[0] for t in sample_order_and_hap_cluster_inf]
+    # print(hap_sample_order,len(hap_sample_order))#################
+    filter_and_sort_snp_or_indel(INDEL_and_INF,hap_sample_order,indel_sample_order)
+    filter_and_sort_snp_or_indel(SNP_and_INF,hap_sample_order,snp_sample_order)
+    filter_and_sort_sv(SV_and_INF,hap_sample_order,snp_sample_order)
+    CN=filter_and_sort_cnv2(CN,hap_sample_order,snp_sample_order)
+
     #generate each hap's sequence
     resolve_hap_seq(INDEL_and_INF[1],SV_and_INF[1],ref_file,chr_name,gene_structure,cluster_inf,SNP_and_INF[0],INDEL_and_INF[0],SV_and_INF[0],CN,output_file)
     
