@@ -415,7 +415,7 @@ def deal_sv(chr_name,sv_sample_order,gene_structure,sv_file,part_len):
             pattern = re.compile(r".*SVTYPE=(.{,10});.*END=(\d+);.*")
             match=pattern.match(ls[7])
             if not match:
-                line = inf.readline()
+                # print(ls[7])
                 continue
             svtype=match.groups()[0]
             ed=int(match.groups()[1])
@@ -679,6 +679,8 @@ def resolve_hap_seq(INDEL_inf_item_list,SV_inf_item_list,ref_file,chr_name,gene_
                 elif indel_item["type"] == "DEL":
                     #make the position's later to null string
                     for i in range(1,indel_item["length"]):
+                        if i>len(hap_seq)-1:
+                            break
                         hap_seq[indel_item["position"]-fasta_origin[0]+i] = ''
                 else:
                     sys.stderr.write("\tresolving indel error\n")                
