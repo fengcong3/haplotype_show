@@ -133,7 +133,7 @@ def deal_SNP(chr_name,snp_sample_order,gene_structure,snp_file):
     ##calc the gene+upstream region
     need_region=[]
     if gene_structure["ori"] == "+":
-        need_region=[gene_structure["upsteam"][0][0],gene_structure["gene"][0][1]]
+        need_region=[gene_structure["upstream"][0][0],gene_structure["gene"][0][1]]
     else:
         need_region=[gene_structure["gene"][0][0],gene_structure["upstream"][0][1]]
 
@@ -234,7 +234,7 @@ def deal_indel(chr_name,indel_sample_order,gene_structure,indel_file):
     ##calc the gene+upstream region
     need_region=[]
     if gene_structure["ori"] == "+":
-        need_region=[gene_structure["upsteam"][0][0],gene_structure["gene"][0][1]]
+        need_region=[gene_structure["upstream"][0][0],gene_structure["gene"][0][1]]
     else:
         need_region=[gene_structure["gene"][0][0],gene_structure["upstream"][0][1]]
 
@@ -329,7 +329,7 @@ def deal_sv(chr_name,sv_sample_order,gene_structure,sv_file,part_len):
     ##calc the gene+upstream region
     need_region=[]
     if gene_structure["ori"] == "+":
-        need_region=[gene_structure["upsteam"][0][0],gene_structure["gene"][0][1]]
+        need_region=[gene_structure["upstream"][0][0],gene_structure["gene"][0][1]]
     else:
         need_region=[gene_structure["gene"][0][0],gene_structure["upstream"][0][1]]
 
