@@ -48,7 +48,15 @@ def myapp(environ, start_response):
     #except Exception:
     #    ret_json = {}
     #js = json.dumps(ret_json)
-    stat=os.system("cd /var/www/hap.bioinf.club/webapp/gene_data; ls %s* ; if [ $? -ne 0 ];then ln -s /var/www/hap.bioinf.club/gene_data/%s.* .; fi; cd -;"%(gene,gene))
+    stat=os.system("""cd /var/www/hap.bioinf.club/webapp/gene_data; 
+        ls %s* ; 
+        if [ $? -ne 0 ];then 
+        i=%s;
+        c=${i: 7: 2}; 
+        chr=chr`echo $c|sed 's:0:n:g'`; 
+        ln -s /var/www/hap.bioinf.club/gene_data/$chr/%s/%s.* .; 
+        fi; 
+        cd -;"""%(gene,gene,gene,gene))
     #os.system("echo 11 > /var/www/hap.bioinf.club/webapp/gene_data/test.out")   
     start_response('200 OK', [('Content-Type', 'text/plain')])
     

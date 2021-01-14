@@ -335,13 +335,13 @@ def deal_sv(chr_name,sv_sample_order,gene_structure,sv_file,part_len):
 
     #chr pos convert to part pos
     need_chr=chr_name
+    part_len_d={}
+    inf = open(part_len,"r")
+    for line in inf.readlines():
+        part_len_d[line.strip().split()[0]] = int(line.strip().split()[1])
+    inf.close()
     if chr_name!="chrUn":
-        part_len_d={}
-        inf = open(part_len,"r")
-        for line in inf.readlines():
-            part_len_d[line.strip().split()[0]] = int(line.strip().split()[1])
-        inf.close()
-
+        
         ## didnt check the region whether cross the part chr ##
         ## this can be a bug ##
         ## if u find that this isnt right, u should fix ths bug ##
@@ -404,15 +404,17 @@ def deal_sv(chr_name,sv_sample_order,gene_structure,sv_file,part_len):
             if int(ls[1]) >= need_region[0] and int(ls[1]) < need_region[1]:
                 pass
             else:
+                # print(need_region[0], need_region[1],ls[1])
                 continue
             tmp_sv_item=copy.deepcopy(SV_item)
             tmp_sv_inf_item=copy.deepcopy(SV_INF_item)
-            tmp_sv_item["position"] = int(ls[1])
+            tmp_sv_item["position"] = int(ls[1]) if ls[0].endswith("_part1") else int(ls[1])+part_len_d[chr_name+"_part1"]
+            # print(int(ls[1]), tmp_sv_item["position"])
             tmp_sv_inf_item["chr"]=chr_name
-            tmp_sv_inf_item["position"] = int(ls[1]) if ls[0].endswith("_part1") else int(ls[1])+part_len_d[ls[0]]
+            tmp_sv_inf_item["position"] = int(ls[1]) if ls[0].endswith("_part1") else int(ls[1])+part_len_d[chr_name+"_part1"]
             tmp_sv_inf_item["ref"] = ls[3]
             tmp_sv_inf_item["alt"] = ls[4]
-            pattern = re.compile(r".*SVTYPE=(.{,10});.*END=(\d+);.*")
+            pattern = re.compile(r".*SVTYPE=(.{,10});.*END=(\d+);.*") # INV INS DEL DUP
             match=pattern.match(ls[7])
             if not match:
                 # print(ls[7])
@@ -679,7 +681,8 @@ def resolve_hap_seq(INDEL_inf_item_list,SV_inf_item_list,ref_file,chr_name,gene_
                 elif indel_item["type"] == "DEL":
                     #make the position's later to null string
                     for i in range(1,indel_item["length"]):
-                        if i>len(hap_seq)-1:
+                        # print(indel_item["position"],indel_item["length"],fasta_origin[1],len(hap_seq),i)
+                        if indel_item["position"]-fasta_origin[0]+i >len(hap_seq)-1:
                             break
                         hap_seq[indel_item["position"]-fasta_origin[0]+i] = ''
                 else:
@@ -693,14 +696,22 @@ def resolve_hap_seq(INDEL_inf_item_list,SV_inf_item_list,ref_file,chr_name,gene_
                 elif sv_item["type"] == "DEL":
                     #make the position's later to null string
                     for i in range(1,sv_item["length"]):
-                        if i>len(hap_seq)-1:
+                        # print(sv_item["position"],sv_item["length"],fasta_origin[0],len(hap_seq),i)
+                        if sv_item["position"]-fasta_origin[0]+i >len(hap_seq)-1:
                             break
                         hap_seq[sv_item["position"]-fasta_origin[0]+i] = ''
+                elif sv_item["type"] == "INV":
+                    if sv_item["position"]-fasta_origin[0]+sv_item["length"] > len(hap_seq):
+                        sys.stderr.write("\tdidnt resolve SV-INV\n")
+                    else:
+                        end=sv_item["position"]-fasta_origin[0]+sv_item["length"]-1
+                        sta= sv_item["position"]-fasta_origin[0]-1
+                        hap_seq[sta+1:end+1] = hap_seq[end:sta:-1]
                 elif sv_item["type"] == "DUP":
                     ## deal it or not ?
                     # print(sv_item["position"]-fasta_origin[0]+sv_item["length"]-1,sv_item["position"]-fasta_origin[0],sv_item["position"]-fasta_origin[0]+sv_item["length"])
                     # hap_seq[sv_item["position"]-fasta_origin[0]+sv_item["length"]-1] = hap_seq[sv_item["position"]-fasta_origin[0] : sv_item["position"]-fasta_origin[0]+sv_item["length"]]
-                    pass
+                    sys.stderr.write("\tdidnt resolve SV-DUP\n")  
                 else:
                     sys.stderr.write("\tresolving SV error\n")                
             variant_index+=1 ## move forward

@@ -218,14 +218,44 @@ div.navigation a {
   opacity: 0;
 }
 
-input[type="submit"] {
+.form-btn {
   cursor: pointer;
+  line-height: 24px;
+  border-radius: 5px;
 }
 
 .haplotype-refs {
   position: relative;
   margin: 17px 0 0 0;
   display: block;
+}
+
+.haplotype-name {
+  float: right;
+  /* margin-right: 200px; */
+  display: inline;
+  margin: 0 200px;
+}
+
+.showGeneName {
+  position: relative;
+  line-height: 24px;
+  text-align: center;
+  display: inline;
+  height: 24px;
+  font-size: large;
+  font-weight: 600;
+}
+
+.ref-btn {
+  cursor: pointer;
+  line-height: 24px;
+  text-align: center;
+  margin-left: 10px;
+}
+
+.gene-phy {
+  margin-left: 460px;
 }
 
 .pagination {
@@ -235,12 +265,13 @@ input[type="submit"] {
 }
 
 .showCurrentPage {
-  height: 24px;
+  max-height: 24px;
   width: 24px;
   text-align: center;
   line-height: 24px;
-  border: 1px solid #000;
+  border: 1.2px solid #000;
   display: inline-block;
+  white-space: nowrap;
 }
 
 span {
@@ -356,18 +387,18 @@ ul.tab li.li:last-child {
 }
 
 .tbl-content tr {
-    text-align: center;
-    vertical-align: middle;
-    font-weight: 300;
-    font-size: 13px;
-    border-bottom: solid 1px rgba(0,0,0,0.1);
-    display: table-row;
-    height: 25px;
-    line-height: 25px;
+  text-align: center;
+  vertical-align: middle;
+  font-weight: 300;
+  font-size: 13px;
+  border-bottom: solid 1px rgba(0, 0, 0, 0.1);
+  display: table-row;
+  height: 25px;
+  line-height: 25px;
 }
 
 .tbl-content tr td {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow:ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

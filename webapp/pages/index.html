@@ -9,8 +9,6 @@
     <!-- jQuery first, then D3.js, then Bootstrap JS -->
     <script type="text/javascript" src="../static/js/jquery.min.js"></script>
     <script type="text/javascript" src="../static/js/d3.v6.min.js"></script>
-    <script type="text/javascript" src="../static/js/main.js"></script>
-    <link rel="stylesheet" href="../static/css/phylotree.css">
     <link rel="stylesheet" href="../static/css/common.css">
     <script type="text/javascript" src="../static/js/haplotype-plot.js"></script>
     <script type="text/javascript" src="../static/js/utils.js"></script>
@@ -37,11 +35,11 @@
             <div class="haplotype-refs" dir="auto">
                 <svg width="520" height="40" style="overflow: visible;">
                     <g>
-                        <!-- <rect x="131" y="18" width="34" height="10" fill="white" stroke="red"
-                            style="stroke-dasharray: 4, 4; stroke-width: 1.5"></rect> -->
                         <!-- 36 -->
                         <circle cx="136" cy="23" r="6" fill="blue"></circle>
-                        <rect x="154" y="18" width="34" height="10" fill="red"></rect>
+                        <!-- <rect x="154" y="18" width="34" height="10" fill="red"></rect> -->
+                        <rect x="154" y="18" width="34" height="10" fill="white" stroke="red"
+                            style="stroke-dasharray: 4, 4; stroke-width: 1.5"></rect>
                         <rect x="190" y="18" width="34" height="10" fill="green"></rect>
                         <rect x="226" y="18" width="34" height="10" fill="#800080"></rect>
                         <rect x="262" y="18" width="34" height="10" fill="#FFA500"></rect>
@@ -94,9 +92,14 @@
                         </text>
                     </g>
                 </svg>
+                <div class="haplotype-name">
+                    <div class="showGeneName">TraesCS2D02G079600</div>
+                    <button class="ref-btn gene-phy" onclick="handleClickToDrawGeneTree()">gene phylotree</button>
+                    <button class="ref-btn hap-phy" onclick="handleClickToDrawHapTree()">hap phylotree</button>
+                </div>
             </div>
             <div class="haplotype-plot" dir="auto" height="540" style="cursor: pointer; margin: 17px 0;">
-                <svg id="d3-plot" class="svgs" height="460" style="background-color: #ffffff;"></svg>
+                <svg id="d3-plot" class="svgs" height="480" style="background-color: #ffffff;"></svg>
             </div>
             <div class="pagination">
                 <button onclick="handleClickToFirstSvg()">&lt;&lt; First</button>
@@ -107,6 +110,8 @@
                 <span style="margin-right: 4px" class="totalPages"></span>
                 <button onclick="handleClickToNextSvg()">Next &gt;</button>
                 <button onclick="handleClickToLastSvg()">Last &gt;&gt;</button>
+                <input type="text" class="skip-samplename" placeholder="please input sample name" />
+                <button onclick="handleClickToGivenSvg()">跳转</button>
             </div>
             <div id="contentwrap" class="contentwrap">
                 <ul class="tab" id="tab">
@@ -131,28 +136,118 @@
             </div>
         </div>
     </main>
-    <footer>
-        <div id="gene-tree"></div>
-    </footer>
+    <!-- <footer>
+        <span>这是footer</span>
+    </footer> -->
 
     <script type="text/javascript">
         let containerId = "d3-plot";
         let container = document.querySelector("#d3-plot");
         let response;
-        $.ajax({
-            type: "GET",
-            //url: "../static/example_update2.json",
-            url: "../gene_data/TraesCS2D02G079600.json",
-            dataType: "json",
-            contentType: "application/json; charset=utf-8",
-            async: false,
-            success: function (resData) {
-                response = resData;
-            },
-            error: function (err) {
-                console.log(err);
+        getResDataInit();
+        function getResDataInit() {
+            $.ajax({
+                type: "GET",
+                //url: "../static/example_update1.json",
+                url: "../gene_data/TraesCS2D02G079600.json",
+                dataType: "json",
+                contentType: "application/json; charset=utf-8",
+                async: false,
+                success: function (resData) {
+                    response = resData;
+                },
+                error: function (err) {
+                    console.log(err);
+                }
+            });
+        }
+        function getResData(name) {
+            let _url = "../gene_data/" + name + ".json";
+            $.ajax({
+                type: "GET",
+                url: _url,
+                dataType: "json",
+                contentType: "application/json; charset=utf-8",
+                async: false,
+                success: function (resData) {
+                    response = resData;
+                },
+                error: function (err) {
+                    console.log(err);
+                }
+            });
+        }
+        let submitName = "";
+        function handleClickSubmit() {
+            submitName = $(".gene-select").val();
+            console.log(submitName);
+            // http://hap.bioinf.club/
+            if (submitName != "") {
+                $.ajax({
+                    type: "POST",
+                    url: "http://hap.bioinf.club/cgi-bin/hap-show.py",
+                    data: { "name": submitName, "commit": "show" },
+                    contentType: "application/x-www-form-urlencoded",
+                    async: true,
+                    success: function (data) {
+                        console.log(data);
+                        handleSubmitRes(data);
+                    },
+                    error: function (err) {
+                        console.log(err);
+                    }
+                });
+            } else {
+                alert("Please enter gene name");
             }
-        });
+        }
+        function handleSubmitRes(data) {
+            if (data === "OK") {
+                getResData();
+            } else if (data === "notOK") {
+                alert("The sample name you entered does not exist!")
+            }
+        }
+
+        let showGeneName;
+        function handleClickToDrawGeneTree() {
+            showGeneName = $(".showGeneName").text();
+            console.log(showGeneName);
+            $.ajax({
+                type: "POST",
+                url: "http://hap.bioinf.club/cgi-bin/toiTol.py",
+                data: { "name": showGeneName, "act": "tree1" },
+                contentType: "application/x-www-form-urlencoded",
+                async: true,
+                success: function (data) {
+                    console.log(data);
+                    window.open(data, "target");
+                },
+                error: function (err) {
+                    console.log(err);
+                }
+            });
+
+        }
+        function handleClickToDrawHapTree() {
+            showGeneName = $(".showGeneName").text();
+            console.log(showGeneName);
+            $.ajax({
+                type: "POST",
+                url: "http://hap.bioinf.club/cgi-bin/toiTol.py",
+                data: { "name": showGeneName, "act": "tree2" },
+                contentType: "application/x-www-form-urlencoded",
+                async: true,
+                success: function (data) {
+                    console.log(data);
+                    window.open(data, "target");
+                },
+                error: function (err) {
+                    console.log(err);
+                }
+            });
+
+        }
 
         function handleResData(data) {
             let temp = [];
@@ -236,7 +331,7 @@
             top: 50,
             right: 100,
             bottom: 10,
-            left: 100
+            left: 130
         })
         let color = ({
             ins: 'green',
@@ -273,7 +368,7 @@
         let gsHeightMin = 12;
         let snp_r = 2.5;
         let pathMoveY = 10;
-        let delta = 50;
+        let delta = 35;
         let snpPosition = [];
         let _snp, graph, bindHeight, sampleNames, geneEnd, geneName;
         let yValue = (datum) => { return datum.name };
@@ -296,7 +391,10 @@
                 //.domain([d3.min(data, xValue), d3.max(data, xValue)])
                 .domain([start, xScaleMax])
                 .range([0, innerWidth]);
-
+            _xScale = d3.scaleLinear()
+                //.domain([d3.min(data, xValue), d3.max(data, xValue)])
+                .domain([start, xScaleMax])
+                .range([0, innerWidth]).nice();
             yScale = d3.scaleBand()
                 // .domain(d3.map(yValue(data[0]), d => d))
                 .domain(sampleNames)
@@ -315,7 +413,7 @@
             d3.selectAll(".top-axis text").attr("opacity", 0);
             //设置Variation
             variation = data[0].variation;
-            let xAxisGroupTop = g.append('g').call(xAxis).attr('transform', `translate(${0}, ${-30})`)
+            let xAxisGroupTop = g.append('g').call(d3.axisTop(xScale)).attr('transform', `translate(${0}, ${-30})`)
                 .attr("text-anchor", "end");
 
             //绘制版心
@@ -438,8 +536,8 @@
 
             ins.forEach(d => {
                 graph.append("path").attr("class", "ins").attr("fill", "none").attr("stroke", color.ins).attr("stroke-width", 2)
-                    .attr("d", `M ${xScale(d[0] - d[3] / 2)} ${yScale(d[1]) + d[2] * -0.1} L ${xScale(d[0] + d[3] / 2)} ${yScale(d[1]) + d[2] * -0.1} 
-                        L ${xScale(d[0])} ${yScale(d[1]) + d[2] * -0.1} L ${xScale(d[0])} ${yScale(d[1]) + bindHeight / 2}`)
+                    .attr("d", `M ${xScale(d[0] - d[3] / 2)} ${yScale(d[1]) + d[2] / 2 - 2} L ${xScale(d[0] + d[3] / 2)} ${yScale(d[1]) + d[2] / 2 - 2} 
+                        L ${xScale(d[0])} ${yScale(d[1]) + d[2] / 2 - 2} L ${xScale(d[0])} ${yScale(d[1]) + bindHeight / 2}`)
 
                 xAxisGroupTop.append("path").attr("class", "ins").attr("fill", "none").attr("stroke", color.ins).attr("stroke-width", 2)
                     .attr("d", `M ${xScale(d[0] - delta)} 7 L ${xScale(d[0] + delta)} 7
@@ -492,12 +590,32 @@
                     .attr("width", xScale(d[3] + start)).attr("height", "6").attr("text-anchor", "middle")
                     .style("stroke-dasharray", "4, 4").style("stroke-width", '1.5');
             })
-            svDup.forEach(d => {
-                graph.append("rect").attr("fill", color.svDup).attr("opacity", 1).attr("x", xScale(d[0] - d[3] / 2))
-                    .attr("y", yScale(d[1]) + bindHeight / 2 - d[2] / 2).attr("height", d[2]).attr("width", xScale(d[3] + start));
-                xAxisGroupTop.append('rect').attr("x", xScale(d[0] - d[3] / 2)).attr("y", "-4").attr("fill", color.svDup)
-                    .attr("width", xScale(d[3] + start)).attr("height", "8").attr("text-anchor", "middle");
-            })
+            let dupWidth;
+            if (ori === "-") {
+                svDup.forEach(d => {
+                    if (d[3] + start + d[0] < geneEnd + data[0].upstream - start) {
+                        dupWidth = d[3] + start;
+                    } else {
+                        dupWidth = geneEnd - d[0] + data[0].upstream;
+                    }
+                    graph.append("rect").attr("fill", color.svDup).attr("opacity", 1).attr("x", xScale(d[0]))
+                        .attr("y", yScale(d[1]) + bindHeight / 2 - d[2] / 2).attr("height", d[2] - 5).attr("width", xScale(dupWidth));
+                    xAxisGroupTop.append('rect').attr("x", xScale(d[0])).attr("y", "-4").attr("fill", color.svDup)
+                        .attr("width", xScale(dupWidth)).attr("height", "6").attr("text-anchor", "middle");
+                })
+            } else if (ori === "+") {
+                svDup.forEach(d => {
+                    if (d[3] + start + d[0] < geneEnd) {
+                        dupWidth = d[3] + start;
+                    } else {
+                        dupWidth = geneEnd - d[0];
+                    }
+                    graph.append("rect").attr("fill", color.svDup).attr("opacity", 1).attr("x", xScale(d[0]))
+                        .attr("y", yScale(d[1]) + bindHeight / 2 - d[2] / 2 + 2.5).attr("height", d[2] - 5).attr("width", xScale(dupWidth));
+                    xAxisGroupTop.append('rect').attr("x", xScale(d[0])).attr("y", "-1.5").attr("fill", color.svDup)
+                        .attr("width", xScale(dupWidth)).attr("height", "4").attr("text-anchor", "middle");
+                })
+            }
 
             //绘制CN 
             _cn = [];
@@ -519,33 +637,20 @@
             for (let i = 0; i < sampleNames.length; i++) {
                 for (let j = 0; j < SNP.length; j++) {
                     let item = SNP[j];
-                    let bind = [item.position, sampleNames[i], gsHeightMin, item.stat_in_each_sample[i]];
-                    _snp.push(bind);
-                    snpPosition.push(item.position);
+                    if (item.stat_in_each_sample[i] != "./.") {
+                        let bind = [item.position, sampleNames[i], gsHeightMin, item.stat_in_each_sample[i]];
+                        _snp.push(bind);
+                        snpPosition.push(item.position);
+                    }
                 }
             }
             _snp.forEach(d => {
-                graph.append("text").attr("opacity", 0).attr("x", xScale(d[0])).attr("class", "snp")
+                graph.append("text").attr("opacity", 0).attr("x", xScale(d[0]))
                     .attr("y", yScale(d[1]) + bindHeight / 2 + 10).text(d[3]).attr("class", "snp")
-                    .attr("font-size", '1em').attr("text-anchor", 'start');
+                    .attr("font-size", '0.75em').attr("text-anchor", 'start');
                 xAxisGroup.append('circle').attr("cx", xScale(d[0])).attr("cy", "0").attr("r", snp_r).attr("fill", color.snp);
             })
         }
-
-        let createTooltip = function (el) {
-            el
-                .style("position", "absolute")
-                .style("pointer-events", "none")
-                .style("top", 0)
-                .style("opacity", 0)
-                .style("background", "red")
-                .style("border-radius", "5px")
-                .style("box-shadow", "0 0 10px rgba(0,0,0,.25)")
-                .style("padding", "10px")
-                .style("line-height", "1.3")
-                .style("font", "11px sans-serif")
-        }
-
         // show text following line 
         const showText = function (xPosition, yPosition, withMouseOut) {
             let textShowDeviation = 120;
@@ -589,22 +694,18 @@
 
             // snpPosition.includes(changeToXScale)
             changeSNP.forEach(item => {
-                if (changeToXScale - snp_r - 1 < item && item < changeToXScale + snp_r + 1) {
+                if (changeToXScale - snp_r < item && item < changeToXScale + snp_r) {
                     ix = changeSNP.indexOf(item);
                     currentX = uniqueSNP[ix];
                     $(".snp").each(function () {
                         if ($(this).attr("x") === currentX) {
                             $(this).attr("opacity", 1)
-                        } else (
+                        }
+                        else (
                             $(this).attr("opacity", 0)
                         )
                     });
-                } 
-		//else {
-                //    $(".snp").each(function () {
-                //        $(this).attr("opacity", 0)
-                //    });
-                //}
+                }
             })
         }
 
@@ -612,7 +713,6 @@
             lineLeft = margin.left;
             geneLength = +($(".bc").attr("width"));
             lineRight = geneLength + lineLeft;
-            const tooltip = d3.select(document.createElement("div")).call(createTooltip);
             const hoverLine = svg.append("line").attr("class", "hover-line").attr("y1", 0)
                 .attr("y2", height - margin.bottom).attr("stroke", "red").style("pointer-events", "none").style("opacity", 0);
 
@@ -638,18 +738,10 @@
                         hoverText.style("opacity", 0);
                     }
 
-                    if (y < margin.top | y > height - margin.bottom) {
+                    if (y < margin.top - 2 | y > height - margin.bottom) {
                         hoverText.style("opacity", 0);
                         showText(0, 0, true);
                     }
-
-                    y += 20;
-                    if (x > width / 2) x -= 100;
-
-                    tooltip
-                        .style("left", x + "px")
-                        .style("top", y + "px")
-
                 })
         }
 
@@ -706,7 +798,32 @@
             firstPageData.push(fpGs);
             return firstPageData;
         }
-
+        function findSampleNameInData(_name) {
+            let firstPageData = [];
+            let fpGs = {};
+            let _variation = {};
+            fpVariation = data[0].variation;
+            fpSampleNames = data[0].name;
+            let ix = fpSampleNames.indexOf(_name);
+            if (ix != -1) {
+                let start = Math.floor(ix / pageMaxNumber) * pageMaxNumber;
+                let end = (Math.floor(ix / pageMaxNumber) + 1) * pageMaxNumber;
+                fpGs["name"] = data[0].name.slice(start, end);
+                fpGs["exon"] = data[0].exon;
+                fpGs["3p_UTR"] = data[0]["3p_UTR"];
+                fpGs["5p_UTR"] = data[0]["5p_UTR"];
+                fpGs["upstream"] = data[0].upstream;
+                _variation["CN"] = fpVariation.CN.slice(start, end);
+                _variation["SNP"] = handleDataCutOut(fpVariation.SNP, start, end);
+                _variation["SV"] = handleDataCutOut(fpVariation.SV, start, end);
+                _variation["INDEL"] = handleDataCutOut(fpVariation.INDEL, start, end);
+                fpGs["variation"] = _variation;
+                firstPageData.push(fpGs);
+                return firstPageData;
+            } else {
+                return [];
+            }
+        }
         function removeExistElements() {
             d3.select("#maingroup").remove();
             d3.select(".hover-line").remove();
@@ -787,13 +904,32 @@
             //location.reload();
             setCurrentPageNumber(page);
         }
-        $(".showCurrentPage").keyup(function (event) {
-            if (event.keyCode == 13) {
+        $(".showCurrentPage").keydown(function (event) {
+            if (event.keyCode == 13 || event.key == 'Enter' || event.code == 'Enter') {
                 currentPageNumber = getCurrentPageNumber();
                 handleClickToInputSvg(currentPageNumber);
+                if (event.preventDefault) {
+                    event.preventDefault();
+                } else {
+                    event.returnValue = false;
+                }
             }
         });
-
+        function handleClickToGivenSvg() {
+            let skipSampleName = $(".skip-samplename").val();
+            if (skipSampleName != "" | skipSampleName != undefined) {
+                let skipData = findSampleNameInData(skipSampleName);
+                if (skipData.length != 0) {
+                    removeExistElements();
+                    renderInit(skipData);
+                    drawLine();
+                } else {
+                    return;
+                }
+            } else {
+                return;
+            }
+        }
         // show table 
         $('#tab > li').on("click", function () {
             var num = $(this).index();
@@ -819,15 +955,15 @@
             //let csvPath = "../gene_data/" + geneName.slice(0, -1) + tab + ".csv";
             let csvPath = "../gene_data/TraesCS2D02G079600." + tab + ".csv"
             if (tab === "snp") {
-                d3.csv(csvPath).then(function(data) {
+                d3.csv(csvPath).then(function (data) {
                     showTable(data);
                 })
             } else if (tab === "sv") {
-                d3.csv(csvPath).then(function(data) {
+                d3.csv(csvPath).then(function (data) {
                     showTable(data);
                 })
             } else if (tab === "indel") {
-                d3.csv(csvPath).then(function(data) {
+                d3.csv(csvPath).then(function (data) {
                     showTable(data);
                 })
             }
@@ -837,14 +973,14 @@
             let theadHtml = "";
             let tbodyHtml = ""
             theadHtml += "<tr>";
-            columns.forEach( d => {
-                theadHtml +=     "<td>" + d + "</td>";
+            columns.forEach(d => {
+                theadHtml += "<td>" + d + "</td>";
             })
             theadHtml += "</tr>";
             data.forEach(d => {
                 tbodyHtml += "<tr>";
-                columns.forEach( di => {
-                    tbodyHtml +=     "<td>" + htmlEscape(d[di]) + "</td>";
+                columns.forEach(di => {
+                    tbodyHtml += "<td>" + htmlEscape(d[di]) + "</td>";
                 })
                 tbodyHtml += "</tr>";
             })
@@ -852,9 +988,9 @@
             $(".tbl-body-data").html(tbodyHtml);
         }
         function showTableText() {
-            $(".tbl-content").mouseover( function() {
-                $("tbody tr").each(function(i) {
-                    $(this).children('td').each(function(j){
+            $(".tbl-content").mouseover(function () {
+                $("tbody tr").each(function (i) {
+                    $(this).children('td').each(function (j) {
                         // 设置title属性
                         $(this).attr('title', $(this).text());
                     });
@@ -862,44 +998,7 @@
             })
         }
         showTableText();
-        // 特殊字符转义
-        function htmlEscape(text){ 
-            return text.replace(/[<>"&]/g, function(match, pos, originalText){
-                switch(match){
-                    case "<": return "&lt;"; 
-                    case ">":return "&gt;";
-                    case "&":return "&amp;"; 
-                    case "\"":return "&quot;"; 
-                } 
-            }); 
-        }
-        let submitName = "";
-        function handleClickSubmit() {
-            submitName =  $(".gene-select").val();
-            console.log(submitName);
-            // http://hap.bioinf.club/
-            if (submitName != "") {
-                $.ajax({
-                    type: "POST",
-                    url: "http://hap.bioinf.club/cgi-bin/hap-show.py",
-                    data: {"name": submitName, "commit": "show"},
-                    contentType: "application/x-www-form-urlencoded",
-                    async: true,
-                    success: function (data) {
-                        console.log(data);
-                    },
-                    error: function (err) {
-                        console.log(err);
-                    }
-                });
-            } else {
-                alert("Please enter gene name");
-            } 
-        }
-        
-    </script>
-    <script type="module">
-        import {Tree,FigTree,rectangularLayout,branch,circle,tipLabel,internalNodeLabel} from "../static/js/main.js"
+
     </script>
 </body>
 
