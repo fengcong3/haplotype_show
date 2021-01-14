@@ -191,7 +191,7 @@
                     async: true,
                     success: function (data) {
                         console.log(data);
-                        handleSubmitRes(data);
+                        handleSubmitRes(data, submitName);
                     },
                     error: function (err) {
                         console.log(err);
@@ -201,9 +201,9 @@
                 alert("Please enter gene name");
             }
         }
-        function handleSubmitRes(data) {
+        function handleSubmitRes(data, name) {
             if (data === "OK") {
-                getResData();
+                getResData(name);
             } else if (data === "notOK") {
                 alert("The sample name you entered does not exist!")
             }
@@ -998,7 +998,16 @@
             })
         }
         showTableText();
-
+                function htmlEscape(text){ 
+            return text.replace(/[<>"&]/g, function(match, pos, originalText){
+                switch(match){
+                    case "<": return "&lt;"; 
+                    case ">":return "&gt;";
+                    case "&":return "&amp;"; 
+                    case "\"":return "&quot;"; 
+                } 
+            }); 
+        }
     </script>
 </body>
 
