@@ -221,7 +221,6 @@ div.navigation a {
 .form-btn {
   cursor: pointer;
   line-height: 24px;
-  border-radius: 5px;
 }
 
 .haplotype-refs {
@@ -232,19 +231,9 @@ div.navigation a {
 
 .haplotype-name {
   float: right;
-  /* margin-right: 200px; */
+  margin-right: 160px;
   display: inline;
-  margin: 0 200px;
-}
-
-.showGeneName {
-  position: relative;
-  line-height: 24px;
   text-align: center;
-  display: inline;
-  height: 24px;
-  font-size: large;
-  font-weight: 600;
 }
 
 .ref-btn {
@@ -254,9 +243,16 @@ div.navigation a {
   margin-left: 10px;
 }
 
-.gene-phy {
-  margin-left: 460px;
-}
+.showGeneName {
+    position: relative;
+    line-height: 24px;
+    text-align: center;
+    height: 24px;
+    font-size: large;
+    font-weight: 600;
+    padding: 10px;
+    margin: 5px auto;
+  }
 
 .pagination {
   margin: 17px 0;
