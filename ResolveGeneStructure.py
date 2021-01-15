@@ -408,10 +408,10 @@ def deal_sv(chr_name,sv_sample_order,gene_structure,sv_file,part_len):
                 continue
             tmp_sv_item=copy.deepcopy(SV_item)
             tmp_sv_inf_item=copy.deepcopy(SV_INF_item)
-            tmp_sv_item["position"] = int(ls[1]) if ls[0].endswith("_part1") else int(ls[1])+part_len_d[chr_name+"_part1"]
+            tmp_sv_item["position"] = int(ls[1]) if ls[0].endswith("_part1") or ls[0].endswith("Un") else int(ls[1])+part_len_d[chr_name+"_part1"]
             # print(int(ls[1]), tmp_sv_item["position"])
             tmp_sv_inf_item["chr"]=chr_name
-            tmp_sv_inf_item["position"] = int(ls[1]) if ls[0].endswith("_part1") else int(ls[1])+part_len_d[chr_name+"_part1"]
+            tmp_sv_inf_item["position"] = int(ls[1]) if ls[0].endswith("_part1") or ls[0].endswith("Un") else int(ls[1])+part_len_d[chr_name+"_part1"]
             tmp_sv_inf_item["ref"] = ls[3]
             tmp_sv_inf_item["alt"] = ls[4]
             pattern = re.compile(r".*SVTYPE=(.{,10});.*END=(\d+);.*") # INV INS DEL DUP
@@ -487,7 +487,7 @@ def deal_cnv(gene_name,cnv_sample_order,cnv_file):
             pass
         else:
             for gt in ls[9:]:
-                if gt[0] == 0 :
+                if gt[0] == "0" :
                     CN.append("1")
                 else:
                     CN.append("N") # this is the first version,dont have indeed copy number
@@ -627,7 +627,10 @@ def rep_idx_str(str,idx,char):
         sys.stderr.write("SNP rep error\n")
         return str
 
-def resolve_hap_seq(INDEL_inf_item_list,SV_inf_item_list,ref_file,chr_name,gene_structure,cluster_inf,SNP_item_list,INDEL_item_list,SV_item_list,CN_list,outputprefix):
+def resolve_hap_seq(INDEL_inf_item_list,SV_inf_item_list,
+    ref_file,chr_name,gene_structure,cluster_inf,
+    SNP_item_list,INDEL_item_list,SV_item_list,
+    CN_list,outputprefix):
     sys.stderr.write("haplotype sequence resolving ...\n")
     '''
     "gene_structure":{
@@ -721,8 +724,71 @@ def resolve_hap_seq(INDEL_inf_item_list,SV_inf_item_list,ref_file,chr_name,gene_
         ouf.write("".join(hap_seq)+"\n")
 
     ouf.close()
-            
+             
+def combine_sample_inf (sample_order_and_hap_cluster_inf,
+    SNP_and_INF,
+    INDEL_and_INF,
+    SV_and_INF,
+    CN,info_file,output_file):
+    sys.stderr.write("combining sample inf ...\n")
+
+    info_file_handle = open(info_file,"r")
+    sample_inf_d = {}
+    header_line_split = info_file_handle.readline().strip().split()
+    line = info_file_handle.readline()
+    while line:
+        ls = line.strip().split()
+        sample_inf_d[ls[0]] = ls[1:]
+        line = info_file_handle.readline()
+    info_file_handle.close()
+
     
+    
+    ##add snp information
+    
+    for snp_item,snp_inf_item in zip(SNP_and_INF[0],SNP_and_INF[1]):
+        header_line_split.append("SNP_%s_%d"%(snp_inf_item["chr"],snp_inf_item["position"]))
+        sample_index = 0
+        for sample,sample_hap in sample_order_and_hap_cluster_inf:
+            sample_inf_d[sample].append(snp_item["stat_in_each_sample"][sample_index])
+            sample_index += 1
+        
+    ##add indel information
+    for indel_item,indel_inf_item in zip(INDEL_and_INF[0],INDEL_and_INF[1]):
+        header_line_split.append("INDEL_%s_%d_%s"%(indel_inf_item["chr"],indel_inf_item["position"],indel_item["type"]))
+        sample_index = 0
+        for sample,sample_hap in sample_order_and_hap_cluster_inf:
+            sample_inf_d[sample].append(indel_item["stat_in_each_sample"][sample_index])
+            sample_index += 1
+
+    ##add sv information
+    for sv_item,sv_inf_item in zip(SV_and_INF[0],SV_and_INF[1]):
+        header_line_split.append("SV_%s_%d_%s"%(sv_inf_item["chr"],sv_inf_item["position"],sv_item["type"]))
+        sample_index = 0
+        for sample,sample_hap in sample_order_and_hap_cluster_inf:
+            sample_inf_d[sample].append(sv_item["stat_in_each_sample"][sample_index]) 
+            sample_index += 1
+    ##add cn information
+    header_line_split.append("CN")
+    sample_index = 0
+    for sample,sample_hap in sample_order_and_hap_cluster_inf:
+        sample_inf_d[sample].append("%s"%(CN[sample_index]))
+        sample_index += 1
+
+    ##add hap cluster
+    header_line_split.append("hap")
+    for sample,sample_hap in sample_order_and_hap_cluster_inf:
+        sample_inf_d[sample].append("hap%d"%(sample_hap+1))
+
+        
+
+    ##output
+    ouf = open(output_file+".inf.csv","w")
+    ouf.write(",".join(header_line_split)+"\n")
+    for sample,sample_hap in sample_order_and_hap_cluster_inf:
+        ouf.write(sample+","+",".join(sample_inf_d[sample]) + "\n")
+
+    ouf.close()
 
 
 
@@ -744,6 +810,8 @@ if __name__ == "__main__":
                            help="cnv matrix. ")
     cmdparser.add_argument("-r", "--ref", dest="ref", type=str,
                            help="reference path. ")
+    cmdparser.add_argument("-i", "--inf", dest="inf", type=str,
+                           help="sample information. ")
     # cmdparser.add_argument("-i", "--info", dest="info", type=str,required=True,
     #                        help="sample information.")
     cmdparser.add_argument("-o", "--outputprefix", dest="outputprefix", type=str,
@@ -765,6 +833,7 @@ if __name__ == "__main__":
     chr_name= args.chr
     ref_file = args.ref
     output_file = args.outputprefix
+    info_file = args.inf
 
     ##gene_structure
     gene_structure=get_gene_structure(chr_name,gene_name,gff_file)
@@ -810,8 +879,13 @@ if __name__ == "__main__":
     CN=filter_and_sort_cnv2(CN,hap_sample_order,snp_sample_order)
 
     #generate each hap's sequence
-    resolve_hap_seq(INDEL_and_INF[1],SV_and_INF[1],ref_file,chr_name,gene_structure,cluster_inf,SNP_and_INF[0],INDEL_and_INF[0],SV_and_INF[0],CN,output_file)
+    resolve_hap_seq(INDEL_and_INF[1],SV_and_INF[1],ref_file,chr_name,
+        gene_structure,cluster_inf,SNP_and_INF[0],INDEL_and_INF[0],SV_and_INF[0],CN,output_file)
     
+    #ouput sample information
+    combine_sample_inf(sample_order_and_hap_cluster_inf,
+        SNP_and_INF,INDEL_and_INF,SV_and_INF,CN,info_file,output_file)
+
     #multi-algn and phylotree
     stat = os.system("""
     /public/agis/chengshifeng_group/xianwenfei/software/mafft-7.427-with-extensions/bin/mafft --anysymbol %s.hap.fasta > %s.hap.MSA ;
