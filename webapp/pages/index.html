@@ -47,6 +47,7 @@
                         <rect x="334" y="18" width="34" height="10" fill="#FF00FF"></rect>
                         <rect x="370" y="18" width="34" height="10" fill="#1E90FF"></rect>
                         <rect x="406" y="18" width="34" height="10" fill="yellow"></rect>
+                        <rect x="442" y="18" width="34" height="10" fill="#00EE76"></rect>
                     </g>
                     <g transform="translate(130,28)" fill="none" font-size="10" font-family="sans-serif"
                         text-anchor="middle">
@@ -93,11 +94,11 @@
                     </g>
                 </svg>
                 <div class="haplotype-name">
-                    <div class="showGeneName">TraesCS2D02G079600</div>
                     <button class="ref-btn gene-phy" onclick="handleClickToDrawGeneTree()">gene phylotree</button>
                     <button class="ref-btn hap-phy" onclick="handleClickToDrawHapTree()">hap phylotree</button>
                 </div>
             </div>
+            <div class="showGeneName"></div>
             <div class="haplotype-plot" dir="auto" height="540" style="cursor: pointer; margin: 17px 0;">
                 <svg id="d3-plot" class="svgs" height="480" style="background-color: #ffffff;"></svg>
             </div>
@@ -111,7 +112,7 @@
                 <button onclick="handleClickToNextSvg()">Next &gt;</button>
                 <button onclick="handleClickToLastSvg()">Last &gt;&gt;</button>
                 <input type="text" class="skip-samplename" placeholder="please input sample name" />
-                <button onclick="handleClickToGivenSvg()">跳转</button>
+                <button onclick="handleClickToGivenSvg()">Jump</button>
             </div>
             <div id="contentwrap" class="contentwrap">
                 <ul class="tab" id="tab">
@@ -144,6 +145,56 @@
         let containerId = "d3-plot";
         let container = document.querySelector("#d3-plot");
         let response;
+                // 常量
+                let margin = ({
+            top: 50,
+            right: 100,
+            bottom: 10,
+            left: 130
+        })
+        let color = ({
+            ins: 'green',
+            del: 'red',
+            utrP5: '#FF00FF',
+            utrP3: '#FF00FF',
+            upstream: '#00FFFF',
+            snp: 'blue',
+            exon: '#1E90FF',
+            svDup: '#FFA500',
+            svDel: '#800080',
+            svIns: 'yellow',
+            svInv: "#00EE76"
+        })
+        let svg = d3.select(container);
+        // width="1450" height="360" 
+        // let width = +svg.attr("width");
+        let height = +svg.attr("height");
+        let width = $(".haplotype-plot").width();
+        // let height = data[0].name.length * 65 / 50;
+        // svg.attr("height", height);
+        svg.attr("width", width);
+
+        $(window).resize(function () {
+            width = $(window).width();
+            svg.attr("width", width);
+            location.reload();
+        })
+        let innerWidth = width - margin.left - margin.right;
+        let innerHeight = height - margin.top - margin.bottom;
+        let xScale, yScale;
+        let lineLeft, lineRight, geneLength;
+        let xScaleMax, start, ori;
+        let gsHeight = 28;
+        let gsHeightMin = 12;
+        let snp_r = 2.5;
+        let pathMoveY = 10;
+        let delta = 35;
+        let snpPosition = [];
+        let _snp, graph, bindHeight, sampleNames, geneEnd, geneName;
+        let pageMaxNumber = 10;
+        let currentPageNumber;
+        let yValue = (datum) => { return datum.name };
+        
         getResDataInit();
         function getResDataInit() {
             $.ajax({
@@ -155,100 +206,13 @@
                 async: false,
                 success: function (resData) {
                     response = resData;
+                    $(".showGeneName").text("TraesCS2D02G079600");
                 },
                 error: function (err) {
                     console.log(err);
                 }
             });
         }
-        function getResData(name) {
-            let _url = "../gene_data/" + name + ".json";
-            $.ajax({
-                type: "GET",
-                url: _url,
-                dataType: "json",
-                contentType: "application/json; charset=utf-8",
-                async: false,
-                success: function (resData) {
-                    response = resData;
-                },
-                error: function (err) {
-                    console.log(err);
-                }
-            });
-        }
-        let submitName = "";
-        function handleClickSubmit() {
-            submitName = $(".gene-select").val();
-            console.log(submitName);
-            // http://hap.bioinf.club/
-            if (submitName != "") {
-                $.ajax({
-                    type: "POST",
-                    url: "http://hap.bioinf.club/cgi-bin/hap-show.py",
-                    data: { "name": submitName, "commit": "show" },
-                    contentType: "application/x-www-form-urlencoded",
-                    async: true,
-                    success: function (data) {
-                        console.log(data);
-                        handleSubmitRes(data, submitName);
-                    },
-                    error: function (err) {
-                        console.log(err);
-                    }
-                });
-            } else {
-                alert("Please enter gene name");
-            }
-        }
-        function handleSubmitRes(data, name) {
-            if (data === "OK") {
-                getResData(name);
-            } else if (data === "notOK") {
-                alert("The sample name you entered does not exist!")
-            }
-        }
-
-        let showGeneName;
-        function handleClickToDrawGeneTree() {
-            showGeneName = $(".showGeneName").text();
-            console.log(showGeneName);
-            $.ajax({
-                type: "POST",
-                url: "http://hap.bioinf.club/cgi-bin/toiTol.py",
-                data: { "name": showGeneName, "act": "tree1" },
-                contentType: "application/x-www-form-urlencoded",
-                async: true,
-                success: function (data) {
-                    console.log(data);
-                    window.open(data, "target");
-                },
-                error: function (err) {
-                    console.log(err);
-                }
-            });
-
-        }
-        function handleClickToDrawHapTree() {
-            showGeneName = $(".showGeneName").text();
-            console.log(showGeneName);
-            $.ajax({
-                type: "POST",
-                url: "http://hap.bioinf.club/cgi-bin/toiTol.py",
-                data: { "name": showGeneName, "act": "tree2" },
-                contentType: "application/x-www-form-urlencoded",
-                async: true,
-                success: function (data) {
-                    console.log(data);
-                    window.open(data, "target");
-                },
-                error: function (err) {
-                    console.log(err);
-                }
-            });
-
-        }
-
         function handleResData(data) {
             let temp = [];
             let geneStructure = data["gene_structure"];
@@ -323,66 +287,120 @@
             return temp;
         }
 
+        function getResData(name) {
+            let _url = "../gene_data/" + name + ".json";
+            let _data = null;
+            console.log(_url);
+            $.ajax({
+                type: "GET",
+                url: _url,
+                dataType: "json",
+                contentType: "application/json; charset=utf-8",
+                async: false,
+                success: function (resData) {
+                    console.log(resData);
+                    _data = resData;
+                },
+                error: function (err) {
+                    console.log(err);
+                }
+            });
+            return _data;
+        }
+        let submitName = "";
+        function handleClickSubmit() {
+            submitName = $(".gene-select").val();
+            console.log(submitName);
+            // http://hap.bioinf.club/
+            if (submitName != "") {
+                $.ajax({
+                    type: "POST",
+                    url: "http://hap.bioinf.club/cgi-bin/hap-show.py",
+                    data: { "name": submitName, "commit": "show" },
+                    contentType: "application/x-www-form-urlencoded",
+                    async: false,
+                    success: function (data) {
+                        console.log(data);
+                        handleSubmitRes(data, submitName);
+                    },
+                    error: function (err) {
+                        console.log(err);
+                    }
+                });
+            } else {
+                alert("Please enter gene name");
+            }
+        }
+        function handleSubmitRes(data, name) {
+            if (data === "OK") {
+                response = getResData(name);
+                $(".showGeneName").text(name);
+                dealData = handleResData(response);
+                getGeneStructureData(dealData);
+                _pageData = firstPageDataInitAndDataPagination(dealData, 0, pageMaxNumber);
+                removeExistElements();
+                renderInit(_pageData);
+                drawLine();
+            } else if (data === "notOK") {
+                alert("The gene name you entered does not exist!")
+            }
+        }
+
+        let showGeneName;
+        function handleClickToDrawGeneTree() {
+            showGeneName = $(".showGeneName").text();
+            console.log(showGeneName);
+            $.ajax({
+                type: "POST",
+                url: "http://hap.bioinf.club/cgi-bin/toiTol.py",
+                data: { "name": showGeneName, "act": "tree1" },
+                contentType: "application/x-www-form-urlencoded",
+                async: false,
+                success: function (data) {
+                    console.log(data);
+                    window.open(data);
+                },
+                error: function (err) {
+                    console.log(err);
+                }
+            });
+
+        }
+        function handleClickToDrawHapTree() {
+            showGeneName = $(".showGeneName").text();
+            console.log(showGeneName);
+            $.ajax({
+                type: "POST",
+                url: "http://hap.bioinf.club/cgi-bin/toiTol.py",
+                data: { "name": showGeneName, "act": "tree2" },
+                contentType: "application/x-www-form-urlencoded",
+                async: false,
+                success: function (data) {
+                    console.log(data);
+                    window.open(data);
+                },
+                error: function (err) {
+                    console.log(err);
+                }
+            });
+
+        }
+
         let data = handleResData(response);
         console.log(data);
 
-        // 常量
-        let margin = ({
-            top: 50,
-            right: 100,
-            bottom: 10,
-            left: 130
-        })
-        let color = ({
-            ins: 'green',
-            del: 'red',
-            utrP5: '#FF00FF',
-            utrP3: '#FF00FF',
-            upstream: '#00FFFF',
-            snp: 'blue',
-            exon: '#1E90FF',
-            svDup: '#FFA500',
-            svDel: '#800080',
-            svIns: 'yellow',
-        })
-        let svg = d3.select(container);
-        // width="1450" height="360" 
-        // let width = +svg.attr("width");
-        let height = +svg.attr("height");
-        let width = $(".haplotype-plot").width();
-        // let height = data[0].name.length * 65 / 50;
-        // svg.attr("height", height);
-        svg.attr("width", width);
-
-        $(window).resize(function () {
-            width = $(window).width();
-            svg.attr("width", width);
-            location.reload();
-        })
-        let innerWidth = width - margin.left - margin.right;
-        let innerHeight = height - margin.top - margin.bottom;
-        let xScale, yScale;
-        let lineLeft, lineRight, geneLength;
-        let xScaleMax, start, ori;
-        let gsHeight = 28;
-        let gsHeightMin = 12;
-        let snp_r = 2.5;
-        let pathMoveY = 10;
-        let delta = 35;
-        let snpPosition = [];
-        let _snp, graph, bindHeight, sampleNames, geneEnd, geneName;
-        let yValue = (datum) => { return datum.name };
-
-        ori = data[0].ori;
-        start = data[0].start;
-        geneEnd = data[0].geneEnd;
-        geneName = data[0].geneName;
-        if (ori === '+') {
-            xScaleMax = data[0].end;
-        } else if (ori === '-') {
-            xScaleMax = data[0].end;
+        function getGeneStructureData(data) {
+            ori = data[0].ori;
+            start = data[0].start;
+            geneEnd = data[0].geneEnd;
+            geneName = data[0].geneName;
+            if (ori === '+') {
+                xScaleMax = data[0].end;
+            } else if (ori === '-') {
+                xScaleMax = data[0].end;
+            }
         }
-
+        getGeneStructureData(data);
         const renderInit = function (data) {
             // sampleNames is dynamic
             sampleNames = data[0].name;
@@ -548,6 +566,7 @@
             svDel = [];
             svDup = [];
             svIns = [];
+            svInv = [];
             SV = variation.SV;
             for (let i = 0; i < sampleNames.length; i++) {
                 for (let j = 0; j < SV.length; j++) {
@@ -566,6 +585,11 @@
                         if (item.stat_in_each_sample[i] == '1') {
                             let bind = [item.position, sampleNames[i], gsHeightMin, item.length];
                             svIns.push(bind);
+                        }
+                    } else if (item.type == 'INV') {
+                        if (item.stat_in_each_sample[i] == '1') {
+                            let bind = [item.position, sampleNames[i], gsHeightMin, item.length];
+                            svInv.push(bind);
                         }
                     }
                 }
@@ -614,6 +638,32 @@
                         .attr("y", yScale(d[1]) + bindHeight / 2 - d[2] / 2 + 2.5).attr("height", d[2] - 5).attr("width", xScale(dupWidth));
                     xAxisGroupTop.append('rect').attr("x", xScale(d[0])).attr("y", "-1.5").attr("fill", color.svDup)
                         .attr("width", xScale(dupWidth)).attr("height", "4").attr("text-anchor", "middle");
+                })
+            }
+            let invWidth;
+            if (ori === "-") {
+                svInv.forEach(d => {
+                    if (d[3] + start + d[0] < geneEnd + data[0].upstream - start) {
+                        invWidth = d[3] + start;
+                    } else {
+                        invWidth = geneEnd - d[0] + data[0].upstream;
+                    }
+                    graph.append("rect").attr("fill", color.svInv).attr("opacity", 1).attr("x", xScale(d[0]))
+                        .attr("y", yScale(d[1]) + bindHeight / 2 - d[2] / 2).attr("height", d[2] - 5).attr("width", xScale(invWidth));
+                    xAxisGroupTop.append('rect').attr("x", xScale(d[0])).attr("y", "-4").attr("fill", color.svDup)
+                        .attr("width", xScale(invWidth)).attr("height", "6").attr("text-anchor", "middle");
+                })
+            } else if (ori === "+") {
+                svInv.forEach(d => {
+                    if (d[3] + start + d[0] < geneEnd) {
+                        invWidth = d[3] + start;
+                    } else {
+                        invWidth = geneEnd - d[0];
+                    }
+                    graph.append("rect").attr("fill", color.svInv).attr("opacity", 1).attr("x", xScale(d[0]))
+                        .attr("y", yScale(d[1]) + bindHeight / 2 - d[2] / 2 + 2.5).attr("height", d[2] - 5).attr("width", xScale(invWidth));
+                    xAxisGroupTop.append('rect').attr("x", xScale(d[0])).attr("y", "-1.5").attr("fill", color.svDup)
+                        .attr("width", xScale(invWidth)).attr("height", "4").attr("text-anchor", "middle");
                 })
             }
 
@@ -745,8 +795,7 @@
                 })
         }
 
-        let pageMaxNumber = 10;
-        let currentPageNumber;
+        // pagination
         let pages = (data[0].name.length % pageMaxNumber) === 0 ? (data[0].name.length / pageMaxNumber) :
             Math.floor(data[0].name.length / pageMaxNumber) + 1;
 
@@ -772,6 +821,7 @@
             return rt;
         }
 
+        // turn page data
         function firstPageDataInitAndDataPagination(data, start, end) {
             // 返回array，返回的数据包括：
             //sampleNames:[], exon:[[]], variation: {CN:[],INDEL:[{}],SNP:[{}],SV:[{}]}, 3p, 5p, upstream
@@ -798,14 +848,23 @@
             firstPageData.push(fpGs);
             return firstPageData;
         }
+        // page jump data
         function findSampleNameInData(_name) {
             let firstPageData = [];
             let fpGs = {};
             let _variation = {};
+            let reg = new RegExp(_name);
+            let ix;
             fpVariation = data[0].variation;
             fpSampleNames = data[0].name;
-            let ix = fpSampleNames.indexOf(_name);
+            //let ix = fpSampleNames.indexOf(_name);
+            fpSampleNames.forEach((d, index) => {
+                if(d.match(reg)) {
+                    ix = index;
+                }
+            })
             if (ix != -1) {
+                let JumpPage = Math.floor(ix / pageMaxNumber) + 1;
                 let start = Math.floor(ix / pageMaxNumber) * pageMaxNumber;
                 let end = (Math.floor(ix / pageMaxNumber) + 1) * pageMaxNumber;
                 fpGs["name"] = data[0].name.slice(start, end);
@@ -818,12 +877,14 @@
                 _variation["SV"] = handleDataCutOut(fpVariation.SV, start, end);
                 _variation["INDEL"] = handleDataCutOut(fpVariation.INDEL, start, end);
                 fpGs["variation"] = _variation;
+                fpGs["page"] = JumpPage;
                 firstPageData.push(fpGs);
                 return firstPageData;
             } else {
                 return [];
             }
         }
+        // remove exist svg
         function removeExistElements() {
             d3.select("#maingroup").remove();
             d3.select(".hover-line").remove();
@@ -844,12 +905,10 @@
             drawLine();
             setCurrentPageNumber(1);
         } else {
-            // 对样本数超过10的gene结构进行绘制svg
-            currentPageNumber = getCurrentPageNumber();
+            // svg the gene structure with a sample number of more than 10
             let pageData = firstPageDataInitAndDataPagination(data, 0, pageMaxNumber);
             renderInit(pageData);
             drawLine();
-            setCurrentPageNumber(currentPageNumber);
         }
 
         function handleClickToFirstSvg() {
@@ -858,7 +917,6 @@
             let pageData = firstPageDataInitAndDataPagination(data, 0, pageMaxNumber);
             renderInit(pageData);
             drawLine();
-            //location.reload();
             setCurrentPageNumber(1);
         }
         function handleClickToPreSvg() {
@@ -870,7 +928,6 @@
                     (currentPageNumber - 2) * pageMaxNumber, (currentPageNumber - 1) * pageMaxNumber);
                 renderInit(pageData);
                 drawLine();
-                //location.reload();
                 setCurrentPageNumber(currentPageNumber - 1);
             }
         }
@@ -883,27 +940,28 @@
                     currentPageNumber * pageMaxNumber, (currentPageNumber + 1) * pageMaxNumber);
                 renderInit(pageData);
                 drawLine();
-                //location.reload();
                 setCurrentPageNumber(currentPageNumber + 1);
             }
         }
         function handleClickToLastSvg() {
+            // last page
             removeExistElements();
             let pageData = firstPageDataInitAndDataPagination(data, (pages - 1) * pageMaxNumber, pages * pageMaxNumber);
             renderInit(pageData);
             drawLine();
-            //location.reload();
             setCurrentPageNumber(pages);
         }
+
+        // input turn page number
         function handleClickToInputSvg(page) {
             removeExistElements();
             let pageData = firstPageDataInitAndDataPagination(data,
                 (page - 1) * pageMaxNumber, (page) * pageMaxNumber);
             renderInit(pageData);
             drawLine();
-            //location.reload();
             setCurrentPageNumber(page);
         }
+        // Enter page numbers to jump 
         $(".showCurrentPage").keydown(function (event) {
             if (event.keyCode == 13 || event.key == 'Enter' || event.code == 'Enter') {
                 currentPageNumber = getCurrentPageNumber();
@@ -915,6 +973,7 @@
                 }
             }
         });
+        // Jump based on sample name
         function handleClickToGivenSvg() {
             let skipSampleName = $(".skip-samplename").val();
             if (skipSampleName != "" | skipSampleName != undefined) {
@@ -923,6 +982,8 @@
                     removeExistElements();
                     renderInit(skipData);
                     drawLine();
+                    console.log(skipData[0]["page"])
+                    setCurrentPageNumber(skipData[0]["page"]);
                 } else {
                     return;
                 }
@@ -952,8 +1013,8 @@
         csvDataToHtml("indel");
         function csvDataToHtml(tab) {
             console.log(tab);
-            //let csvPath = "../gene_data/" + geneName.slice(0, -1) + tab + ".csv";
-            let csvPath = "../gene_data/TraesCS2D02G079600." + tab + ".csv"
+            let csvPath = "../gene_data/" + geneName.slice(0, -1) + tab + ".csv";
+            // let csvPath = "../gene_data/TraesCS2D02G079600." + tab + ".csv"
             if (tab === "snp") {
                 d3.csv(csvPath).then(function (data) {
                     showTable(data);
@@ -998,7 +1059,8 @@
             })
         }
         showTableText();
-                function htmlEscape(text){ 
+        // Special character escape
+        function htmlEscape(text){ 
             return text.replace(/[<>"&]/g, function(match, pos, originalText){
                 switch(match){
                     case "<": return "&lt;"; 
