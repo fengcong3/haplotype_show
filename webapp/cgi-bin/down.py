@@ -12,6 +12,7 @@ from urllib.parse import unquote
 import json
 import sys
 import os
+import requests
 def get_environ(environ):
     # rquest_method = environ["REQUEST_METHOD"]
     # str = "rquest_method:" + rquest_method + "\r\n"
@@ -33,25 +34,17 @@ def get_environ(environ):
     return str1 
 
 def work(gene):
-    os.system("""cd /var/www/hap.bioinf.club/webapp/gene_data; 
-        ls %s* ; 
-        if [ $? -ne 0 ];then 
-            i=%s;
-            c=${i: 7: 2}; 
-            chr=chr`echo $c|sed 's:0:n:g'`; 
-            ln -s /var/www/hap.bioinf.club/gene_data/$chr/%s/%s.* .; 
-        fi; 
-        cd -;"""%(gene,gene,gene,gene))
+    stat=os.system("""
+    cd /var/www/hap.bioinf.club/webapp/gene_data;
+    tar cvhzf %s.tar.gz %s*.fasta %s*.csv 
+    """%(gene,gene,gene))
 
-    return os.path.exists("/var/www/hap.bioinf.club/webapp/gene_data/%s.json"%(gene)) and \
-        os.path.exists("/var/www/hap.bioinf.club/webapp/gene_data/%s.snp.csv"%(gene)) and \
-        os.path.exists("/var/www/hap.bioinf.club/webapp/gene_data/%s.indel.csv"%(gene)) and \
-        os.path.exists("/var/www/hap.bioinf.club/webapp/gene_data/%s.sv.csv"%(gene)) and \
-        os.path.exists("/var/www/hap.bioinf.club/webapp/gene_data/%s.sv.csv"%(gene)) and \
-        os.path.exists("/var/www/hap.bioinf.club/webapp/gene_data/%s.hap.fasta"%(gene)) and \
-        os.path.exists("/var/www/hap.bioinf.club/webapp/gene_data/%s.hap.newick"%(gene)) and \
-        os.path.exists("/var/www/hap.bioinf.club/webapp/gene_data/%s.newick"%(gene)) and \
-        os.path.exists("/var/www/hap.bioinf.club/webapp/gene_data/%s.inf.csv"%(gene))
+    down_url=''
+    if not stat:
+        down_url="http://hap.bioinf.club/gene_data/%s.tar.gz"%(gene)
+    
+    return tuple(stat,down_url)
+
 
 
 
@@ -61,20 +54,18 @@ def myapp(environ, start_response):
     split_l = content.split("&")
     
     gene= unquote(split_l[0].split("name=")[1],'utf-8')
+    act= unquote(split_l[1].split("act=")[1],'utf-8')
+    stat=0
+    down_url = ''
 
-    #ret_json = {}
-    #try:
-    #    with open("/var/www/hap.bioinf.club/webapp//gene_data/%s.json"%(gene),'r') as load_f:
-    #        ret_json = json.load(load_f)   
-    #except Exception:
-    #    ret_json = {}
-    #js = json.dumps(ret_json)
-    stat=work(gene)
+    if act == "down":
+        stat,down_url = work(gene)
+
     #os.system("echo 11 > /var/www/hap.bioinf.club/webapp/gene_data/test.out")   
     start_response('200 OK', [('Content-Type', 'text/plain')])
     
     if not stat :
-        return "OK"
+        return down_url
     else:
         return "notOK"
 
