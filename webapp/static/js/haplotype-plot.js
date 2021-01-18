@@ -1,17 +1,695 @@
-function HaplotypeGraph(argsMap) {
-    var self = this;
+function HaplotypeGraph (argsMap) {
+    let self = this;
 
-    var containerId;
-    var container;
-    let _init = function () {
-        containerId = getRequiredVar(argsMap, "containerId");
-        container = document.querySelector("#" + containerId);
+    // 常量
+    let margin = ({
+        top: 50,
+        right: 100,
+        bottom: 10,
+        left: 130
+    })
+    let color = ({
+        ins: 'green',
+        del: 'red',
+        utrP5: '#FF00FF',
+        utrP3: '#FF00FF',
+        upstream: '#00FFFF',
+        snp: 'blue',
+        exon: '#1E90FF',
+        svDup: '#FFA500',
+        svDel: '#800080',
+        svIns: 'yellow',
+        svInv: "#00EE76"
+    })
+    let containerId, container, plotDiv, width, height, svg, totalPageCls, resizeWidth;
+    let _snp, graph, bindHeight, sampleNames, geneEnd, geneName, allSampleNames;
+    let innerWidth, innerHeight, lineLeft, lineRight, geneLength;
+    let xScale, yScale, xScaleMax, start, ori;
+    let gsHeight = 28;
+    let gsHeightMin = 12;
+    let snp_r = 2.5;
+    let pathMoveY = 10;
+    let delta = 35;
+    let snpPosition = [];
+    let pageMaxNumber = 10;
+    let currentPageNumber, pages;
+    let xAxisGroupTop, dupWidth, invWidth;
+    let yValue = (datum) => { return datum.name };
+    let data, pageData;
+    let firstSvg, preSvg, nextSvg, lastSvg, givenSvg, skipName;
 
-        // margin[0] = getOptionalVar(argsMap, 'marginTop', 20) // marginTop allows fitting the actions, date and top of axis labels
-        // margin[1] = getOptionalVar(argsMap, 'marginRight', 10)
-        // margin[2] = getOptionalVar(argsMap, 'marginBottom', 10) // marginBottom allows fitting the legend along the bottom
-        // margin[3] = getOptionalVar(argsMap, 'marginLeft', 30) // marginLeft allows fitting the axis labels
+    // get something from argsMap;
+    containerId = argsMap["containerId"];
+    plotDiv = argsMap["plotDiv"];
+    data = argsMap["data"];
+    resizeWidth = argsMap["resizeWidth"];
+    totalPageCls = argsMap["totalPages"];
+    CurrentPageCls = argsMap["showCurrentPage"];
+    firstSvg = argsMap["pagination"][0];
+    preSvg = argsMap["pagination"][1];
+    nextSvg = argsMap["pagination"][2];
+    lastSvg = argsMap["pagination"][3];
+    givenSvg = argsMap["pagination"][4];
+    skipName = argsMap["skipSampleName"];
+
+    function getGeneStructureData (data) {
+        ori = data[0].ori;
+        start = data[0].start;
+        geneEnd = data[0].geneEnd;
+        geneName = data[0].geneName;
+        if (ori === '+') {
+            xScaleMax = data[0].end;
+        } else if (ori === '-') {
+            xScaleMax = data[0].end;
+        }
+        allSampleNames = data[0].name;
     }
 
-    _init();
+    let _init = function (data, outerWidth) {
+        container = document.querySelector("#" + containerId);
+        svg = d3.select(container);
+        height = +svg.attr("height");
+        if (outerWidth === undefined) {
+            width = $("." + plotDiv).width();
+        } else {
+            width = outerWidth;
+        }
+        svg.attr("width", width);
+
+        innerWidth = width - margin.left - margin.right;
+        innerHeight = height - margin.top - margin.bottom;
+        console.log(width);
+
+        let sampleNamesLen = allSampleNames.length;
+        pages = (sampleNamesLen % pageMaxNumber) === 0 ? (sampleNamesLen / pageMaxNumber) :
+            Math.floor(sampleNamesLen / pageMaxNumber) + 1;
+        $("." + totalPageCls).text(pages);
+
+        if (pages === 1) {
+            pageData = firstPageDataInitAndDataPagination(data);
+            renderInit(pageData);
+            drawLine();
+            setCurrentPageNumber(1);
+        } else {
+            // svg the gene structure with a sample number of more than 10
+            pageData = firstPageDataInitAndDataPagination(data, 0, pageMaxNumber);
+            renderInit(pageData);
+            drawLine();
+        }
+
+    }
+
+    const renderInit = function (data) {
+        // sampleNames is dynamic
+        sampleNames = data[0].name;
+        //设置坐标轴的比例尺
+        xScale = d3.scaleLinear()
+            //.domain([d3.min(data, xValue), d3.max(data, xValue)])
+            .domain([start, xScaleMax])
+            .range([0, innerWidth]);
+        _xScale = d3.scaleLinear()
+            //.domain([d3.min(data, xValue), d3.max(data, xValue)])
+            .domain([start, xScaleMax])
+            .range([0, innerWidth]).nice();
+        yScale = d3.scaleBand()
+            // .domain(d3.map(yValue(data[0]), d => d))
+            .domain(sampleNames)
+            .range([0, innerHeight]);
+
+        const g = svg.append("g")
+            .attr("transform", `translate(${margin.left}, ${margin.top})`)
+            .attr("id", "maingroup")
+
+        //绘制坐标轴
+        const xAxis = d3.axisTop(xScale);
+        let xAxisGroup = g.append('g').call(xAxis).attr('transform', `translate(${0}, ${0})`).attr("class", "top-axis")
+            .attr("text-anchor", "end");
+        const yAxis = d3.axisLeft(yScale);
+        g.append('g').attr("class", "sample-name").call(yAxis).attr("class", "left-axis");
+        d3.selectAll(".top-axis text").attr("opacity", 0);
+        //设置Variation
+        variation = data[0].variation;
+        xAxisGroupTop = g.append('g').call(d3.axisTop(xScale)).attr('transform', `translate(${0}, ${-30})`)
+            .attr("text-anchor", "end");
+
+        //绘制版心
+        graph = g.append("g").attr("class", "map")
+        bindHeight = yScale.bandwidth();
+
+        //所有的基因柱状底色全为灰色
+        let bottomColor = [];
+
+        for (let i = 0; i < sampleNames.length; i++) {
+            let bind = [start, sampleNames[i], gsHeightMin, xScaleMax]
+            bottomColor.push(bind);
+        }
+
+        bottomColor.forEach(d => {
+            graph.append("rect").attr("fill", 'gray').attr("class", "bc")
+                .attr("opacity", 0.6).attr("x", xScale(d[0]))
+                .attr("y", yScale(d[1]) + bindHeight / 2 - d[2] / 2).attr("height", d[2]).attr("width", xScale(d[3]));
+        })
+
+        //绘制不同基因区间的图形
+        //绘制upstream
+        upstream = [];
+        if (ori === '+') {
+            for (let i = 0; i < sampleNames.length; i++) {
+                let bind = [start, sampleNames[i], gsHeightMin, data[0].upstream]
+                upstream.push(bind);
+            }
+        } else if (ori === '-') {
+            for (let i = 0; i < sampleNames.length; i++) {
+                let bind = [geneEnd, sampleNames[i], gsHeightMin, data[0].upstream]
+                upstream.push(bind);
+            }
+        }
+
+        upstream.forEach(d => {
+            graph.append("rect").attr("fill", color.upstream).attr("opacity", 1).attr("x", xScale(d[0]))
+                .attr("y", yScale(d[1]) + bindHeight / 2 - d[2] / 2).attr("height", d[2]).attr("width", xScale(d[3]))
+        })
+
+        //绘制5p_UTR
+        utrP5 = [];
+        if (data[0]["5p_UTR"] != 0) {
+            if (ori === '+') {
+                for (let i = 0; i < sampleNames.length; i++) {
+                    let bind = [data[0].upstream + start, sampleNames[i], gsHeight, data[0]["5p_UTR"]]
+                    utrP5.push(bind);
+                }
+            } else if (ori === '-') {
+                for (let i = 0; i < sampleNames.length; i++) {
+                    let bind = [start, sampleNames[i], gsHeight, data[0]["5p_UTR"]]
+                    utrP5.push(bind);
+                }
+            }
+
+            utrP5.forEach(d => {
+                graph.append("rect").attr("fill", color.utrP5).attr("opacity", 1).attr("x", xScale(d[0]))
+                    .attr("y", yScale(d[1]) + bindHeight / 2 - d[2] / 2)
+                    .attr("height", d[2]).attr("width", xScale(d[3]))
+            })
+        }
+
+        //绘制3p_UTR
+        utrP3 = [];
+        for (let i = 0; i < sampleNames.length; i++) {
+            let bind = [geneEnd - data[0]["3p_UTR"] + start, sampleNames[i], gsHeight, data[0]["3p_UTR"]]
+            utrP3.push(bind);
+        }
+
+        utrP3.forEach(d => {
+            graph.append("rect").attr("fill", color.utrP3).attr("opacity", 1).attr("x", xScale(d[0]))
+                .attr("y", yScale(d[1]) + bindHeight / 2 - d[2] / 2).attr("height", d[2]).attr("width", xScale(d[3]))
+        })
+
+        //绘制exon 
+        exon = [];
+        for (let i = 0; i < sampleNames.length; i++) {
+            let exonData = data[0].exon;
+            exonData.forEach(d => {
+                let innerBind = [d[0], sampleNames[i], gsHeight, d[1] - d[0] + 1];
+                exon.push(innerBind);
+            })
+        }
+        exon.forEach(d => {
+            graph.append("rect").attr("fill", color.exon).attr("opacity", 1).attr("x", xScale(d[0]))
+                .attr("y", yScale(d[1]) + bindHeight / 2 - d[2] / 2).attr("height", d[2]).attr("width", xScale(d[3]))
+        })
+
+        //绘制INDEL插入缺失
+        del = [];
+        ins = [];
+        INDEL = variation.INDEL;
+        for (let i = 0; i < sampleNames.length; i++) {
+            for (let j = 0; j < INDEL.length; j++) {
+                let item = INDEL[j];
+                if (item.type == 'DEL') {
+                    if (item.stat_in_each_sample[i] == '1') {
+                        let bind = [item.position, sampleNames[i], gsHeightMin, item.length];
+                        del.push(bind);
+                    }
+                } else if (item.type == 'INS') {
+                    if (item.stat_in_each_sample[i] == '1') {
+                        let bind = [item.position, sampleNames[i], gsHeightMin, item.length];
+                        ins.push(bind);
+                    }
+                }
+            }
+        }
+
+        del.forEach(d => {
+            graph.append("rect").attr("stroke", color.del).attr("fill", "white").attr("opacity", 1).attr("x", xScale(d[0] - d[3] / 2))
+                .attr("y", yScale(d[1]) + bindHeight / 2 - d[2] / 2).attr("height", d[2]).attr("width", xScale(d[3] + start))
+                .style("stroke-dasharray", "4, 4").style("stroke-width", '1.5');
+
+            // top graph
+            xAxisGroupTop.append('rect').attr("x", xScale(d[0] - d[3] / 2)).attr("y", "-4").attr("stroke", color.del).attr("fill", "white")
+                .attr("width", xScale(d[3] + start)).attr("height", "8").attr("text-anchor", "middle")
+                .style("stroke-dasharray", "4, 4").style("stroke-width", '1.5');
+        })
+
+        ins.forEach(d => {
+            graph.append("path").attr("class", "ins").attr("fill", "none").attr("stroke", color.ins).attr("stroke-width", 2)
+                .attr("d", `M ${xScale(d[0] - d[3] / 2)} ${yScale(d[1]) + d[2] / 2 - 2} L ${xScale(d[0] + d[3] / 2)} ${yScale(d[1]) + d[2] / 2 - 2} 
+                    L ${xScale(d[0])} ${yScale(d[1]) + d[2] / 2 - 2} L ${xScale(d[0])} ${yScale(d[1]) + bindHeight / 2}`)
+
+            xAxisGroupTop.append("path").attr("class", "ins").attr("fill", "none").attr("stroke", color.ins).attr("stroke-width", 2)
+                .attr("d", `M ${xScale(d[0] - delta)} 7 L ${xScale(d[0] + delta)} 7
+                    L ${xScale(d[0])} -10 L ${xScale(d[0] - delta)} 7`).attr("text-anchor", "middle");
+        })
+
+        //绘制sv
+        svDel = [];
+        svDup = [];
+        svIns = [];
+        svInv = [];
+        SV = variation.SV;
+        for (let i = 0; i < sampleNames.length; i++) {
+            for (let j = 0; j < SV.length; j++) {
+                let item = SV[j];
+                if (item.type == 'DEL') {
+                    if (item.stat_in_each_sample[i] == '1') {
+                        let bind = [item.position, sampleNames[i], gsHeightMin, item.length];
+                        svDel.push(bind);
+                    }
+                } else if (item.type == 'DUP') {
+                    if (item.stat_in_each_sample[i] == '1') {
+                        let bind = [item.position, sampleNames[i], gsHeightMin, item.length];
+                        svDup.push(bind);
+                    }
+                } else if (item.type == 'INS') {
+                    if (item.stat_in_each_sample[i] == '1') {
+                        let bind = [item.position, sampleNames[i], gsHeightMin, item.length];
+                        svIns.push(bind);
+                    }
+                } else if (item.type == 'INV') {
+                    if (item.stat_in_each_sample[i] == '1') {
+                        let bind = [item.position, sampleNames[i], gsHeightMin, item.length];
+                        svInv.push(bind);
+                    }
+                }
+            }
+        }
+
+        svIns.forEach(d => {
+            graph.append("path").attr("class", "svins").attr("fill", "none").attr("stroke", color.svIns).attr("stroke-width", 2)
+                .attr("d", `M ${xScale(d[0])} ${yScale(d[1]) + pathMoveY} L ${xScale(d[0] + d[3])} ${yScale(d[1]) + pathMoveY} 
+                    L ${xScale(d[0] + d[3] / 2)} ${yScale(d[1]) + pathMoveY} L ${xScale(d[0] + d[3] / 2)} ${yScale(d[1]) + bindHeight / 2 - d[2] / 2}`)
+
+            xAxisGroupTop.append("path").attr("class", "svins").attr("fill", "none").attr("stroke", color.svIns).attr("stroke-width", 2)
+                .attr("d", `M ${xScale(d[0] - delta)} 7 L ${xScale(d[0] + delta)} 7
+                    L ${xScale(d[0])} -10 L ${xScale(d[0] - delta)} 7`).attr("text-anchor", "middle");
+        })
+
+        svDel.forEach(d => {
+            graph.append("rect").attr("stroke", color.svDel).attr("fill", "white").attr("opacity", 1).attr("x", xScale(d[0] - d[3] / 2))
+                .attr("y", yScale(d[1]) + bindHeight / 2 - d[2] / 2).attr("height", d[2]).attr("width", xScale(d[3] + start))
+                .style("stroke-dasharray", "4, 4").style("stroke-width", '1.5');
+
+            xAxisGroupTop.append('rect').attr("x", xScale(d[0] - d[3] / 2)).attr("y", "-2").attr("stroke", color.svDel).attr("fill", "white")
+                .attr("width", xScale(d[3] + start)).attr("height", "6").attr("text-anchor", "middle")
+                .style("stroke-dasharray", "4, 4").style("stroke-width", '1.5');
+        })
+        if (ori === "-") {
+            svDup.forEach(d => {
+                if (d[3] + start + d[0] < geneEnd + data[0].upstream - start) {
+                    dupWidth = d[3] + start;
+                } else {
+                    dupWidth = geneEnd - d[0] + data[0].upstream;
+                }
+                graph.append("rect").attr("fill", color.svDup).attr("opacity", 1).attr("x", xScale(d[0]))
+                    .attr("y", yScale(d[1]) + bindHeight / 2 - d[2] / 2).attr("height", d[2] - 5).attr("width", xScale(dupWidth));
+                xAxisGroupTop.append('rect').attr("x", xScale(d[0])).attr("y", "-4").attr("fill", color.svDup)
+                    .attr("width", xScale(dupWidth)).attr("height", "6").attr("text-anchor", "middle");
+            })
+        } else if (ori === "+") {
+            svDup.forEach(d => {
+                if (d[3] + start + d[0] < geneEnd) {
+                    dupWidth = d[3] + start;
+                } else {
+                    dupWidth = geneEnd - d[0] + start;
+                }
+                graph.append("rect").attr("fill", color.svDup).attr("opacity", 1).attr("x", xScale(d[0]))
+                    .attr("y", yScale(d[1]) + bindHeight / 2 - d[2] / 2 + 2.5).attr("height", d[2] - 5).attr("width", xScale(dupWidth));
+                xAxisGroupTop.append('rect').attr("x", xScale(d[0])).attr("y", "-1.5").attr("fill", color.svDup)
+                    .attr("width", xScale(dupWidth)).attr("height", "4").attr("text-anchor", "middle");
+            })
+        }
+
+        if (ori === "-") {
+            svInv.forEach(d => {
+                if (d[3] + start + d[0] < geneEnd + data[0].upstream - start) {
+                    invWidth = d[3] + start;
+                } else {
+                    invWidth = geneEnd - d[0] + data[0].upstream;
+                }
+                graph.append("rect").attr("fill", color.svInv).attr("opacity", 1).attr("x", xScale(d[0]))
+                    .attr("y", yScale(d[1]) + bindHeight / 2 - d[2] / 2).attr("height", d[2] - 5).attr("width", xScale(invWidth));
+                xAxisGroupTop.append('rect').attr("x", xScale(d[0])).attr("y", "-4").attr("fill", color.svDup)
+                    .attr("width", xScale(invWidth)).attr("height", "6").attr("text-anchor", "middle");
+            })
+        } else if (ori === "+") {
+            svInv.forEach(d => {
+                if (d[3] + start + d[0] < geneEnd) {
+                    invWidth = d[3] + start;
+                } else {
+                    invWidth = geneEnd - d[0] + start;
+                }
+                graph.append("rect").attr("fill", color.svInv).attr("opacity", 1).attr("x", xScale(d[0]))
+                    .attr("y", yScale(d[1]) + bindHeight / 2 - d[2] / 2 + 2.5).attr("height", d[2] - 5).attr("width", xScale(invWidth));
+                xAxisGroupTop.append('rect').attr("x", xScale(d[0])).attr("y", "-1.5").attr("fill", color.svDup)
+                    .attr("width", xScale(invWidth)).attr("height", "4").attr("text-anchor", "middle");
+            })
+        }
+
+        //绘制CN 
+        _cn = [];
+        CN = variation.CN;
+        for (let i = 0; i < sampleNames.length; i++) {
+            let text = [xScaleMax + 150, sampleNames[i], gsHeightMin, CN[i]];
+            _cn.push(text);
+        }
+
+        _cn.forEach(d => {
+            graph.append("text").attr("opacity", 1).attr("x", xScale(d[0]))
+                .attr("y", yScale(d[1]) + bindHeight / 2 + 10).text(d[3])
+                .attr("font-size", '1.5em').attr("text-anchor", 'middle');
+        })
+
+        //draw SNP
+        _snp = [];
+        SNP = variation.SNP;
+        for (let i = 0; i < sampleNames.length; i++) {
+            for (let j = 0; j < SNP.length; j++) {
+                let item = SNP[j];
+                if (item.stat_in_each_sample[i] == "./.") {
+                    each_sample = '.';
+                } else {
+                    each_sample = item.stat_in_each_sample[i];
+                }
+                let bind = [item.position, sampleNames[i], gsHeightMin, each_sample];
+                _snp.push(bind);
+                snpPosition.push(item.position);
+            }
+        }
+        _snp.forEach(d => {
+            graph.append("text").attr("opacity", 0).attr("x", xScale(d[0]))
+                .attr("y", yScale(d[1]) + bindHeight / 2 + 10).text(d[3]).attr("class", "snp")
+                .attr("font-size", '0.75em').attr("text-anchor", 'start');
+            xAxisGroup.append('circle').attr("cx", xScale(d[0])).attr("cy", "0").attr("r", snp_r).attr("fill", color.snp);
+        })
+    }
+
+    // show text following line 
+    const showText = function (xPosition, yPosition, withMouseOut) {
+        let textShowDeviation = 120;
+        let xPositionMappingAxis = Math.round(xPosition * (xScaleMax - start) / geneLength) + start;
+        if (withMouseOut !== undefined) {
+            if (withMouseOut) {
+                svg.select("text.show-text")
+                    .text("")
+                    .attr("x", xPosition)
+                    .attr("y", yPosition)
+            }
+        } else {
+            if (xPositionMappingAxis > xScaleMax / 2) {
+                svg.select("text.show-text")
+                    .text(xPositionMappingAxis + 3)
+                    .attr("x", xPosition + textShowDeviation)
+                    .attr("y", margin.top - 5)
+            } else {
+                svg.select("text.show-text")
+                    .text(xPositionMappingAxis + 1)
+                    .attr("x", xPosition + textShowDeviation)
+                    .attr("y", margin.top - 5)
+            }
+
+        }
+    }
+    // array Deduplication
+    function unique (arr) {
+        return Array.from(new Set(arr));
+    }
+    // When the SNP mutation site is detected, the mutation information is displayed 
+    const showSNPMutationInfo = function (xPosition) {
+        let changeToXScale = Math.round((xPosition - lineLeft));
+
+        let allSNP = [];
+        $(".snp").each(function () {
+            allSNP.push($(this).attr("x"));
+        });
+        let uniqueSNP = unique(allSNP);
+        let changeSNP = uniqueSNP.map(item => Math.round(item));
+
+        // snpPosition.includes(changeToXScale)
+        changeSNP.forEach(item => {
+            if (changeToXScale - snp_r < item && item < changeToXScale + snp_r) {
+                ix = changeSNP.indexOf(item);
+                currentX = uniqueSNP[ix];
+                $(".snp").each(function () {
+                    if ($(this).attr("x") === currentX) {
+                        $(this).attr("opacity", 1)
+                    }
+                    else (
+                        $(this).attr("opacity", 0)
+                    )
+                });
+            }
+        })
+    }
+
+    const drawLine = function () {
+        lineLeft = margin.left;
+        geneLength = +($(".bc").attr("width"));
+        lineRight = geneLength + lineLeft;
+        const hoverLine = svg.append("line").attr("class", "hover-line").attr("y1", 0)
+            .attr("y2", height - margin.bottom).attr("stroke", "red").style("pointer-events", "none").style("opacity", 0);
+
+        const hoverText = svg.append("svg:g").attr("class", "hover-text").append("svg:text").attr("class", "show-text")
+            .attr("font-size", 16).attr("fill", "#333").text("").attr("x", 0).attr("y", 0);
+        svg
+            .on("click", function (event) {
+                // get current mouse location, return [mouseX, mouseY]
+                let [x, y] = d3.pointer(event);
+
+                // draw line
+                if (x < lineLeft) {
+                    hoverLine.style("opacity", 0);
+                    hoverText.style("opacity", 0);
+                } else if (x >= lineLeft && x <= lineRight) {
+                    hoverLine.style("opacity", 1);
+                    hoverLine.attr("transform", `translate(${x}, 0)`);
+                    hoverText.style("opacity", 1);
+                    showText(x - lineLeft, y);
+                    showSNPMutationInfo(x);
+                } else if (x > lineRight) {
+                    hoverLine.style("opacity", 0);
+                    hoverText.style("opacity", 0);
+                }
+
+                if (y < margin.top - 2 | y > height - margin.bottom) {
+                    hoverText.style("opacity", 0);
+                    showText(0, 0, true);
+                }
+            })
+    }
+
+    // 处理variation的数据
+    function handleDataCutOut (arr, start, end) {
+        /*
+        arr: 处理的数组; start: 截取开始的位置; end: 截取结束的位置
+        */
+        let rt = [];
+        arr.forEach(d => {
+            let svTemp = {};
+            for (key in d) {
+                if (key === "stat_in_each_sample") {
+                    svTemp[key] = d[key].slice(start, end);
+                } else {
+                    svTemp[key] = d[key];
+                }
+            }
+            rt.push(svTemp);
+        })
+        return rt;
+    }
+
+    // turn page data
+    function firstPageDataInitAndDataPagination (data, start, end) {
+        // 返回array，返回的数据包括：
+        //sampleNames:[], exon:[[]], variation: {CN:[],INDEL:[{}],SNP:[{}],SV:[{}]}, 3p, 5p, upstream
+        if (start === undefined) {
+            start = 0;
+        }
+        if (end === undefined) {
+            end = pageMaxNumber;
+        }
+        let firstPageData = [];
+        let fpGs = {};
+        let _variation = {};
+        fpVariation = data[0].variation;
+        fpGs["name"] = data[0].name.slice(start, end);
+        fpGs["exon"] = data[0].exon;
+        fpGs["3p_UTR"] = data[0]["3p_UTR"];
+        fpGs["5p_UTR"] = data[0]["5p_UTR"];
+        fpGs["upstream"] = data[0].upstream;
+        _variation["CN"] = fpVariation.CN.slice(start, end);
+        _variation["SNP"] = handleDataCutOut(fpVariation.SNP, start, end);
+        _variation["SV"] = handleDataCutOut(fpVariation.SV, start, end);
+        _variation["INDEL"] = handleDataCutOut(fpVariation.INDEL, start, end);
+        fpGs["variation"] = _variation;
+        firstPageData.push(fpGs);
+        return firstPageData;
+    }
+    // page jump data
+    function findSampleNameInData (_name) {
+        let firstPageData = [];
+        let fpGs = {};
+        let _variation = {};
+        let reg = new RegExp(_name.toLowerCase());
+        let ix = -1;
+        fpVariation = data[0].variation;
+        fpSampleNames = data[0].name;
+        //let ix = fpSampleNames.indexOf(_name);
+        fpSampleNames.forEach((d, index) => {
+            let _d = d.toLowerCase();
+            if (_d.match(reg)) {
+                ix = index;
+            }
+        })
+        if (ix != -1) {
+            let JumpPage = Math.floor(ix / pageMaxNumber) + 1;
+            let start = Math.floor(ix / pageMaxNumber) * pageMaxNumber;
+            let end = (Math.floor(ix / pageMaxNumber) + 1) * pageMaxNumber;
+            fpGs["name"] = data[0].name.slice(start, end);
+            fpGs["exon"] = data[0].exon;
+            fpGs["3p_UTR"] = data[0]["3p_UTR"];
+            fpGs["5p_UTR"] = data[0]["5p_UTR"];
+            fpGs["upstream"] = data[0].upstream;
+            _variation["CN"] = fpVariation.CN.slice(start, end);
+            _variation["SNP"] = handleDataCutOut(fpVariation.SNP, start, end);
+            _variation["SV"] = handleDataCutOut(fpVariation.SV, start, end);
+            _variation["INDEL"] = handleDataCutOut(fpVariation.INDEL, start, end);
+            fpGs["variation"] = _variation;
+            firstPageData.push(fpGs);
+            firstPageData.push(JumpPage);
+            return firstPageData;
+        } else {
+            //let unknownPageData = firstPageDataInitAndDataPagination(data, 0, pageMaxNumber);
+            //unknownPageData.push(1);
+            //return unknownPageData;
+	    alert("Sample does not exist!");
+        }
+    }
+    // remove exist svg
+    function removeExistElements () {
+        d3.select("#maingroup").remove();
+        d3.select(".hover-line").remove();
+        d3.select(".hover-text").remove();
+    }
+
+    function getCurrentPageNumber () {
+        return +($("." + CurrentPageCls).text());
+    }
+
+    function setCurrentPageNumber (num) {
+        $("." + CurrentPageCls).text(num);
+    }
+
+    // function handleClickToFirstSvg () {
+    $("." + firstSvg).click(function () {
+        // show first svg page
+        removeExistElements();
+        let pageData = firstPageDataInitAndDataPagination(data, 0, pageMaxNumber);
+        renderInit(pageData);
+        drawLine();
+        setCurrentPageNumber(1);
+    })
+    // function handleClickToPreSvg () {
+    $("." + preSvg).click(function () {
+        // pre page
+        currentPageNumber = getCurrentPageNumber();
+        if (currentPageNumber != 1) {
+            removeExistElements();
+            let pageData = firstPageDataInitAndDataPagination(data,
+                (currentPageNumber - 2) * pageMaxNumber, (currentPageNumber - 1) * pageMaxNumber);
+            renderInit(pageData);
+            drawLine();
+            setCurrentPageNumber(currentPageNumber - 1);
+        }
+    })
+    // function handleClickToNextSvg () {
+    $("." + nextSvg).click(function () {
+        // next page
+        currentPageNumber = getCurrentPageNumber();
+        if (currentPageNumber != pages) {
+            removeExistElements();
+            let pageData = firstPageDataInitAndDataPagination(data,
+                currentPageNumber * pageMaxNumber, (currentPageNumber + 1) * pageMaxNumber);
+            renderInit(pageData);
+            drawLine();
+            setCurrentPageNumber(currentPageNumber + 1);
+        }
+    })
+    // function handleClickToLastSvg () {
+    $("." + lastSvg).click(function () {
+        // last page
+        removeExistElements();
+        let pageData = firstPageDataInitAndDataPagination(data, (pages - 1) * pageMaxNumber, pages * pageMaxNumber);
+        renderInit(pageData);
+        drawLine();
+        setCurrentPageNumber(pages);
+    })
+
+    // input turn page number
+    function handleClickToInputSvg (page) {
+        removeExistElements();
+        let pageData = firstPageDataInitAndDataPagination(data,
+            (page - 1) * pageMaxNumber, (page) * pageMaxNumber);
+        renderInit(pageData);
+        drawLine();
+        setCurrentPageNumber(page);
+    }
+
+    // Enter page numbers to jump 
+    $("." + CurrentPageCls).keydown(function (event) {
+        if (event.keyCode == 13 || event.key == 'Enter' || event.code == 'Enter') {
+            currentPageNumber = getCurrentPageNumber();
+            handleClickToInputSvg(currentPageNumber);
+            if (event.preventDefault) {
+                event.preventDefault();
+            } else {
+                event.returnValue = false;
+            }
+        }
+    });
+    // Jump based on sample name
+    // function handleClickToGivenSvg () {
+    $("." + givenSvg).click(function () {
+        let skipSampleName = $("." + skipName).val();
+        if (skipSampleName != "" | skipSampleName != undefined) {
+            let skipData = findSampleNameInData(skipSampleName);
+            console.log(skipData);
+            if (skipData.length != 0) {
+                removeExistElements();
+                renderInit(skipData);
+                drawLine();
+                setCurrentPageNumber(skipData[1]);
+            } else {
+                return;
+            }
+        } else {
+            return;
+        }
+    })
+
+    if (resizeWidth != null) {
+        getGeneStructureData(data);
+        _init(data, resizeWidth)
+    } else {
+        getGeneStructureData(data);
+        _init(data);
+    }
 }

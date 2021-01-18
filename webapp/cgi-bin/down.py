@@ -43,7 +43,7 @@ def work(gene):
     if not stat:
         down_url="http://hap.bioinf.club/gene_data/%s.tar.gz"%(gene)
     
-    return tuple(stat,down_url)
+    return tuple([stat,down_url])
 
 
 
@@ -60,7 +60,7 @@ def myapp(environ, start_response):
 
     if act == "down":
         stat,down_url = work(gene)
-
+    os.system("echo stat=%d,down_url=%s > /var/www/hap.bioinf.club/webapp/gene_data/test.txt"%(stat,down_url))
     #os.system("echo 11 > /var/www/hap.bioinf.club/webapp/gene_data/test.out")   
     start_response('200 OK', [('Content-Type', 'text/plain')])
     

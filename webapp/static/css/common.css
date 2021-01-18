@@ -220,7 +220,11 @@ div.navigation a {
 
 .form-btn {
   cursor: pointer;
-  line-height: 24px;
+  line-height: 28px;
+  border: none;
+  background-color: #4e6ef2;
+  border-radius: 5px;
+  color: #fff;
 }
 
 .haplotype-refs {
@@ -238,26 +242,44 @@ div.navigation a {
 
 .ref-btn {
   cursor: pointer;
-  line-height: 24px;
+  height: 32px;
+  line-height: 32px;
   text-align: center;
   margin-left: 10px;
+  border: none;
+  background-color: #4e6ef2;
+  border-radius: 5px;
+  color: #fff;
 }
 
 .showGeneName {
-    position: relative;
-    line-height: 24px;
-    text-align: center;
-    height: 24px;
-    font-size: large;
-    font-weight: 600;
-    padding: 10px;
-    margin: 5px auto;
-  }
+  position: relative;
+  line-height: 24px;
+  text-align: center;
+  height: 24px;
+  font-size: large;
+  font-weight: 600;
+  padding: 10px;
+  margin: 5px auto;
+}
 
 .pagination {
   margin: 17px 0;
   text-align: center;
   display: block;
+}
+
+.download {
+  float: right;
+  margin-right: 140px;
+  height: 36px;
+  width: 90px;
+  border: none;
+  font-size: 16px;
+  background-color: #4e6ef2;
+  border-radius: 5px;
+  cursor: pointer;
+  color: #fff;
 }
 
 .showCurrentPage {
@@ -290,8 +312,8 @@ ul {
 ul.tab {
   border-bottom: 1px solid #ccc;
   padding-bottom: 1px;
-  height: 30px;
-  line-height: 30px;
+  height: 36px;
+  line-height: 36px;
   color: #696969;
 }
 
@@ -305,12 +327,20 @@ ul.tab li {
 ul.tab li.li {
   padding: 0px 25px 0px;
   font-size: 13px;
-  height: 30px;
-  line-height: 30px;
+  height: 36px;
+  line-height: 36px;
   background: #F4F5F9;
   border-top: 1px solid #C5D0DC;
   border-left: 1px solid #C5D0DC;
   border-bottom: 1px solid #C5D0DC;
+}
+
+.li span {
+  background: #F4F5F9;
+}
+
+li.current span {
+  background: #fff;
 }
 
 ul.tab li.current {
@@ -397,4 +427,15 @@ ul.tab li.li:last-child {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+#loading-effect {
+  position: fixed;
+  z-index: 2021;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.2) url(../loading.gif) no-repeat fixed center;
+  display: none;
 }

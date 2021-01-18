@@ -33,11 +33,13 @@ def get_environ(environ):
     return str1 
 
 def work(gene):
-    os.system("""cd /var/www/hap.bioinf.club/webapp/gene_data; 
+    os.system("""
+        #!/bin/bash
+        cd /var/www/hap.bioinf.club/webapp/gene_data; 
         ls %s* ; 
         if [ $? -ne 0 ];then 
             i=%s;
-            c=${i: 7: 2}; 
+            c=`echo $i |awk '{print substr($1,8,2) }'`; 
             chr=chr`echo $c|sed 's:0:n:g'`; 
             ln -s /var/www/hap.bioinf.club/gene_data/$chr/%s/%s.* .; 
         fi; 
@@ -73,7 +75,7 @@ def myapp(environ, start_response):
     #os.system("echo 11 > /var/www/hap.bioinf.club/webapp/gene_data/test.out")   
     start_response('200 OK', [('Content-Type', 'text/plain')])
     
-    if not stat :
+    if  stat :
         return "OK"
     else:
         return "notOK"
