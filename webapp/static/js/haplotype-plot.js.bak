@@ -295,8 +295,8 @@ function HaplotypeGraph (argsMap) {
 
         svIns.forEach(d => {
             graph.append("path").attr("class", "svins").attr("fill", "none").attr("stroke", color.svIns).attr("stroke-width", 2)
-                .attr("d", `M ${xScale(d[0] - d[3]/2)} ${yScale(d[1]) + pathMoveY} L ${xScale(d[0] + d[3]/2)} ${yScale(d[1]) + pathMoveY} 
-                        L ${xScale(d[0])} ${yScale(d[1]) + pathMoveY} L ${xScale(d[0])} ${yScale(d[1]) + bindHeight / 2 - d[2] / 2}`)
+                .attr("d", `M ${xScale(d[0])} ${yScale(d[1]) + pathMoveY} L ${xScale(d[0] + d[3])} ${yScale(d[1]) + pathMoveY} 
+                    L ${xScale(d[0] + d[3] / 2)} ${yScale(d[1]) + pathMoveY} L ${xScale(d[0] + d[3] / 2)} ${yScale(d[1]) + bindHeight / 2 - d[2] / 2}`)
 
             xAxisGroupTop.append("path").attr("class", "svins").attr("fill", "none").attr("stroke", color.svIns).attr("stroke-width", 2)
                 .attr("d", `M ${xScale(d[0] - delta)} 7 L ${xScale(d[0] + delta)} 7

@@ -33,17 +33,23 @@ def get_environ(environ):
     return str1 
 
 def work(gene):
-    os.system("""
-        #!/bin/bash
-        cd /var/www/hap.bioinf.club/webapp/gene_data; 
-        ls %s* ; 
-        if [ $? -ne 0 ];then 
-            i=%s;
-            c=`echo $i |awk '{print substr($1,8,2) }'`; 
-            chr=chr`echo $c|sed 's:0:n:g'`; 
-            ln -s /var/www/hap.bioinf.club/gene_data/$chr/%s/%s.* .; 
-        fi; 
-        cd -;"""%(gene,gene,gene,gene))
+    os.system("echo %s > /var/www/hap.bioinf.club/webapp/gene_data/test.txt"%(gene))
+    if len(gene) != 18 and len(gene) != 17:
+        return False
+
+    chrom =("chr"+ gene[7:9]).replace("0","n")
+    if os.path.exists("/var/www/hap.bioinf.club/gene_data/%s/%s"%(chrom,gene)):
+        os.system("""
+            #!/bin/bash
+            cd /var/www/hap.bioinf.club/webapp/gene_data; 
+            ls %s* ; 
+            if [ $? -ne 0 ];then 
+                i=%s;
+                c=`echo $i |awk '{print substr($1,8,2) }'`; 
+                chr=chr`echo $c|sed 's:0:n:g'`; 
+                ln -s /var/www/hap.bioinf.club/gene_data/$chr/%s/%s.* .; 
+            fi; 
+            cd -;"""%(gene,gene,gene,gene))
 
     return os.path.exists("/var/www/hap.bioinf.club/webapp/gene_data/%s.json"%(gene)) and \
         os.path.exists("/var/www/hap.bioinf.club/webapp/gene_data/%s.snp.csv"%(gene)) and \
