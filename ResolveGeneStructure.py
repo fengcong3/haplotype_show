@@ -181,10 +181,18 @@ def deal_SNP(chr_name,snp_sample_order,gene_structure,snp_file):
             match = pattern.match(ls[7])
             ann = match.groups()[0]
             ann_list = ann.split(",")
+            ### if have *.1 then use it else use the first one ann
+            j_get=False
             for a in ann_list:
                 ann_ls = a.split("|")
+                if  ann_ls[6].endswith(".1"):
+                    tmp_snp_inf_item["ann"].append([ann_ls[0],ann_ls[1],ann_ls[3],ann_ls[6],ann_ls[9],ann_ls[10]])
+                    j_get=True
+                    break
+            if not j_get:
+                ann_ls = ann_list[0].split("|")
                 tmp_snp_inf_item["ann"].append([ann_ls[0],ann_ls[1],ann_ls[3],ann_ls[6],ann_ls[9],ann_ls[10]])
-                break
+
             for sample in ls[9:]:
                 gt = sample.split(":")[0]
                 if gt[0] == gt[-1]:
@@ -289,10 +297,18 @@ def deal_indel(chr_name,indel_sample_order,gene_structure,indel_file):
             match = pattern.match(ls[7])
             ann = match.groups()[0]
             ann_list = ann.split(",")
+
+            j_get=False
             for a in ann_list:
                 ann_ls = a.split("|")
+                if  ann_ls[6].endswith(".1"):
+                    tmp_indel_inf_item["ann"].append([ann_ls[0],ann_ls[1],ann_ls[3],ann_ls[6],ann_ls[9],ann_ls[10]])
+                    j_get=True
+                    break
+            if not j_get:
+                ann_ls = ann_list[0].split("|")
                 tmp_indel_inf_item["ann"].append([ann_ls[0],ann_ls[1],ann_ls[3],ann_ls[6],ann_ls[9],ann_ls[10]])
-                break
+
             for sample in ls[9:]:
                 gt = sample.split(":")[0]
                 if gt[0] == gt[-1]:
