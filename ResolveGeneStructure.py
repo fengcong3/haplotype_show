@@ -903,17 +903,17 @@ if __name__ == "__main__":
         SNP_and_INF,INDEL_and_INF,SV_and_INF,CN,info_file,output_file)
 
     #multi-algn and phylotree
-    stat = os.system("""
-    /public/agis/chengshifeng_group/xianwenfei/software/mafft-7.427-with-extensions/bin/mafft --anysymbol %s.hap.fasta > %s.hap.MSA ;
-    export OMP_NUM_THREADS=1;
-    /public/agis/chengshifeng_group/xianwenfei/software/Fasttree/FastTree  %s.hap.MSA >  %s.hap.newick;
-    """%(output_file,output_file,output_file,output_file)
-    )
+    # stat = os.system("""
+    # /public/agis/chengshifeng_group/xianwenfei/software/mafft-7.427-with-extensions/bin/mafft --anysymbol %s.hap.fasta > %s.hap.MSA ;
+    # export OMP_NUM_THREADS=1;
+    # /public/agis/chengshifeng_group/xianwenfei/software/Fasttree/FastTree  %s.hap.MSA >  %s.hap.newick;
+    # """%(output_file,output_file,output_file,output_file)
+    # )
 
-    if not stat:
-        sys.stderr.write("phylotree success!\n")
-    else:
-        sys.stderr.write("phylotree failed!\n")
+    # if not stat:
+    #     sys.stderr.write("phylotree success!\n")
+    # else:
+    #     sys.stderr.write("phylotree failed!\n")
 
     ##test ouput 
     sys.stderr.write("now ouput json and csv file ...\n")
@@ -934,40 +934,71 @@ if __name__ == "__main__":
     ouf.write(js)
     ouf.close()
 
-
+    
     #out info in csv format
     ##SNP
     ouf = open(output_file+".snp.csv","w")
-    ouf.write("%s,%s,%s,%s,allele,Annotation,Gene_Name,Feature_ID,HGVS.c,HGVS.p\n"%("chr","position","ref","alt"))
+    ouf.write("%s,%s,%s,%s,allele,Annotation,Gene_Name,Feature_ID,HGVS.c,HGVS.p,alt_hap\n"%("chr","position","ref","alt"))
     keys=["chr","position","ref","alt"] #+ "ann"
     for i in range(len(SNP_and_INF[1])):
         for key in keys:
             ouf.write("%s,"%( str(SNP_and_INF[1][i][key]) ) )
         
-        ouf.write("%s\n"%(",".join(SNP_and_INF[1][i]["ann"][0])))
+        ouf.write("%s,"%(",".join(SNP_and_INF[1][i]["ann"][0])))
+
+        ## which hap have this alt allele
+        alt_hap_list=[]
+        for index,hap in enumerate(cluster_inf):
+            # print(hap[i],SNP_and_INF[1][i]["alt"])
+            # if i == 3:
+            #     print(hap[i],SNP_and_INF[1][i]["alt"])
+            if hap[i][-1] == SNP_and_INF[1][i]["alt"]:  #1/1  0/1
+                alt_hap_list.append("hap%d"%(index+1))
+
+        
+        ouf.write("%s\n"%("/".join(alt_hap_list)))
+
 
     ouf.close()
 
     ##indel 
     ouf = open(output_file+".indel.csv","w")
-    ouf.write("%s,%s,%s,%s,%s,type,allele,Annotation,Gene_Name,Feature_ID,HGVS.c,HGVS.p\n"%("chr","position","length","ref","alt"))
+    ouf.write("%s,%s,%s,%s,%s,type,allele,Annotation,Gene_Name,Feature_ID,HGVS.c,HGVS.p,alt_hap\n"%("chr","position","length","ref","alt"))
     keys=["chr","position","length","ref","alt"] #+ "ann"
     for i in range(len(INDEL_and_INF[1])):
         for key in keys:
             ouf.write("%s,"%( str(INDEL_and_INF[1][i][key]) ) )
         ouf.write("%s,"%( str(INDEL_and_INF[0][i]["type"]) ) )
-        ouf.write("%s\n"%(",".join(INDEL_and_INF[1][i]["ann"][0])))
+        ouf.write("%s,"%(",".join(INDEL_and_INF[1][i]["ann"][0])))
+
+        ## which hap have this alt allele
+        alt_hap_list=[]
+        for index,hap in enumerate(cluster_inf):
+            # if i == 76:
+            #     # print(INDEL_and_INF[1][i])
+            #     print(hap[i+len(SNP_and_INF[1])],INDEL_and_INF[1][i]["alt"])
+            if hap[i+len(SNP_and_INF[1])][-1] == "1" :
+                alt_hap_list.append("hap%d"%(index+1))
+
+        ouf.write("%s\n"%("/".join(alt_hap_list)))
 
     ouf.close()
 
     ##sv
     ouf = open(output_file+".sv.csv","w")
-    ouf.write("%s,%s,%s,%s,%s,type\n"%("chr","position","length","ref","alt"))
+    ouf.write("%s,%s,%s,%s,%s,type,alt_hap\n"%("chr","position","length","ref","alt"))
     keys=["chr","position","length","ref","alt"] #+ "ann"
     for i in range(len(SV_and_INF[1])):
         for key in keys:
             ouf.write("%s,"%( str(SV_and_INF[1][i][key]) ) )
-        ouf.write("%s\n"%( str(SV_and_INF[0][i]["type"]) ) )
+        ouf.write("%s,"%( str(SV_and_INF[0][i]["type"]) ) )
         # ouf.write("%s\n"%(",".join(INDEL_and_INF[1][i]["ann"][0])))
 
+        ## which hap have this alt allele
+        alt_hap_list=[]
+        for index,hap in enumerate(cluster_inf):
+            if hap[i+len(SNP_and_INF[1])+len(INDEL_and_INF[1])][-1] == "1":
+                alt_hap_list.append("hap%d"%(index+1))
+
+        ouf.write("%s\n"%("/".join(alt_hap_list)))
     ouf.close()
