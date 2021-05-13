@@ -88,7 +88,13 @@ def get_gene_structure(chr_name,gene_name,gff_file):
                         gene_structure["3p_UTR"].append([int(ls[3]),int(ls[4])])
                     else:
                         pass
-    
+    ##Make the upstream longer
+    if gene_structure["ori"] == "+":
+        gene_structure["upstream"][0][1] = gene_structure["exon"][0][0]-1
+        gene_structure["gene"][0][0] = gene_structure["exon"][0][0]
+    else:
+        gene_structure["upstream"][0][0] = gene_structure["exon"][-1][1]+1
+        gene_structure["gene"][0][1] = gene_structure["exon"][-1][1]
     return gene_structure
                 
 def deal_SNP(chr_name,snp_sample_order,gene_structure,snp_file):
@@ -485,7 +491,7 @@ def filter_and_sort_snp_or_indel(SNP_and_INF,hap_sample_order,snp_sample_order):
 def deal_cnv(gene_name,cnv_sample_order,cnv_file):
     sys.stderr.write("resolve cnv ...\n")
     '''
-    "CN":[1,3,2,2,2,2]
+    "CN":[1,3,2,2,2,2，0.5]
     '''
     gene_name=gene_name.split(".")[0]
     CN=[] 
@@ -495,18 +501,21 @@ def deal_cnv(gene_name,cnv_sample_order,cnv_file):
     while line.startswith("##"):
         line = inf.readline()
     
-    cnv_sample_order = line.strip().split()[9:]
+    # cnv_sample_order = line.strip().split()[9:]  #it's done for vcf file
+    cnv_sample_order = line.strip().split()[1:] #it's for tab seperate format
     line = inf.readline()
     while line:
         ls = line.strip().split()
-        if ls[2] != gene_name:
+        if ls[0] != gene_name:
             pass
         else:
-            for gt in ls[9:]:
-                if gt[0] == "0" :
-                    CN.append("1")
-                else:
-                    CN.append("N") # this is the first version,dont have indeed copy number
+            # for gt in ls[9:]:
+            #     if gt[0] == "0" :
+            #         CN.append("1")
+            #     else:
+            #         CN.append("N") # this is the first version,dont have indeed copy number
+            for gt in ls[1:]:
+                CN.append(gt)
 
         line = inf.readline()
     inf.close()
@@ -903,17 +912,17 @@ if __name__ == "__main__":
         SNP_and_INF,INDEL_and_INF,SV_and_INF,CN,info_file,output_file)
 
     #multi-algn and phylotree
-    # stat = os.system("""
-    # /public/agis/chengshifeng_group/xianwenfei/software/mafft-7.427-with-extensions/bin/mafft --anysymbol %s.hap.fasta > %s.hap.MSA ;
-    # export OMP_NUM_THREADS=1;
-    # /public/agis/chengshifeng_group/xianwenfei/software/Fasttree/FastTree  %s.hap.MSA >  %s.hap.newick;
-    # """%(output_file,output_file,output_file,output_file)
-    # )
+    stat = os.system("""
+    /public/agis/chengshifeng_group/xianwenfei/software/mafft-7.427-with-extensions/bin/mafft --anysymbol %s.hap.fasta > %s.hap.MSA ;
+    export OMP_NUM_THREADS=1;
+    /public/agis/chengshifeng_group/xianwenfei/software/Fasttree/FastTree  %s.hap.MSA >  %s.hap.newick;
+    """%(output_file,output_file,output_file,output_file)
+    )
 
-    # if not stat:
-    #     sys.stderr.write("phylotree success!\n")
-    # else:
-    #     sys.stderr.write("phylotree failed!\n")
+    if not stat:
+        sys.stderr.write("phylotree success!\n")
+    else:
+        sys.stderr.write("phylotree failed!\n")
 
     ##test ouput 
     sys.stderr.write("now ouput json and csv file ...\n")
