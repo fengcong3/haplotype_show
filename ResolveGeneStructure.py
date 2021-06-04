@@ -471,7 +471,21 @@ def deal_sv(chr_name,sv_sample_order,gene_structure,sv_file,part_len):
 def filter_and_sort_sv(SV_and_INF,snp_sample_order,sv_sample_order):
     new_order_index=[]
     for i in snp_sample_order :
-        new_order_index.append(sv_sample_order.index(i))
+        if i in sv_sample_order:#if sv matrix have this sample
+            new_order_index.append(sv_sample_order.index(i))
+        else: #if sv matrix dont have this sample , assign this sample to missing 
+            #append this sample to sv sample order
+            sv_sample_order.append(i)
+            #add inf for this sample
+            for item in SV_and_INF[0]:
+                item["stat_in_each_sample"].append("./.")
+            # if this region have SV or not
+            if len(SV_and_INF[0]) >0:
+                new_order_index.append(len(SV_and_INF[0][0]["stat_in_each_sample"])-1)
+            else:
+                pass
+
+
     # print(len(new_order_index))
     ##modify each SV item
     for item in SV_and_INF[0]:
@@ -521,14 +535,19 @@ def deal_cnv(gene_name,cnv_sample_order,cnv_file):
     inf.close()
 
     if len(CN) ==0:
-        CN = ["1" for n in range(len(cnv_sample_order))]
+        CN = ["Unknown" for n in range(len(cnv_sample_order))]
 
     return (CN,cnv_sample_order)
 
 def filter_and_sort_cnv(CN,snp_sample_order,cnv_sample_order):
     new_order_index=[]
     for i in snp_sample_order :
-        new_order_index.append(cnv_sample_order.index(i))
+        if i in cnv_sample_order:
+            new_order_index.append(cnv_sample_order.index(i))
+        else:
+            CN[0].append("Unknown")
+            cnv_sample_order.append(i)
+            new_order_index.append(len(CN)-1)
     
     CN = [CN[0][n] for  n in new_order_index]
     return CN
