@@ -14,6 +14,31 @@ function htmlEscape(text) {
     });
 }
 
+// Date format
+Date.prototype.format = function (fmt) {
+    var o = {
+        "M+": this.getMonth() + 1,                 //月份 
+        "d+": this.getDate(),                    //日 
+        "h+": this.getHours(),                   //小时 
+        "m+": this.getMinutes(),                 //分 
+        "s+": this.getSeconds(),                 //秒 
+        "q+": Math.floor((this.getMonth() + 3) / 3), //季度 
+        "S": this.getMilliseconds()             //毫秒 
+    };
+    if (/(y+)/.test(fmt)) {
+        fmt = fmt.replace(RegExp.$1, (this.getFullYear() + "").substr(4 - RegExp.$1.length));
+    }
+    for (var k in o) {
+        if (new RegExp("(" + k + ")").test(fmt)) {
+            fmt = fmt.replace(RegExp.$1, (RegExp.$1.length == 1) ? (o[k]) : (("00" + o[k]).substr(("" + o[k]).length)));
+        }
+    }
+    return fmt;
+}
+
+
+
+
 // Processing original data 
 function handleResData(data) {
     let temp = [];
@@ -257,15 +282,23 @@ function showTable(data) {
         theadHtml += "<td>" + d + "</td>";
     })
     theadHtml += "</tr>";
+    let len = columns.length;
     data.forEach(d => {
+        count = 1;
         tbodyHtml += "<tr>";
         columns.forEach(di => {
-            tbodyHtml += "<td>" + htmlEscape(d[di]) + "</td>";
+            if (count === len) {
+                tbodyHtml += "<td class='last-td'>" + htmlEscape(d[di]) + "</td>";
+            } else {
+                tbodyHtml += "<td>" + htmlEscape(d[di]) + "</td>";
+            }
+            count += 1;
         })
         tbodyHtml += "</tr>";
     })
     $(".tbl-head-data").html(theadHtml);
     $(".tbl-body-data").html(tbodyHtml);
+    handleClickTableCell();
 }
 
 // show th td title
@@ -279,6 +312,32 @@ function showTableText() {
         })
     })
 }
+
+
+function handleClickTableCell () {
+    $("td.last-td").each(function (i) {
+        $(this).on("click", function () {
+            let text = $(this).text();
+            text = text.trim().replace(/\//g, " ").trim();
+            $(".filter-samplename").val(text);
+        })
+    })
+}
+
+function saveDataToFile () {
+    let text = $(".filter-samplename").val();
+    let time = new Date().format("MM-dd-hh:mm:ss");
+    let strFile = time + "-saveFilterFile.txt";
+    let element = document.createElement('a');
+    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+    element.setAttribute('download', strFile);
+    element.style.display = 'none';
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+    $(".filter-samplename").val("");
+}
+
 
 // enter to get other gene
 function getResData(name) {

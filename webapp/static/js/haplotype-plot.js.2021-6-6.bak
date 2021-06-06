@@ -37,8 +37,8 @@ function HaplotypeGraph(argsMap) {
     let yValue = (datum) => {
         return datum.name
     };
-    let data, pageData, reset;
-    let firstSvg, preSvg, nextSvg, lastSvg, givenSvg, skipName, filterSvg, filterNames, filterCounts;
+    let data, pageData;
+    let firstSvg, preSvg, nextSvg, lastSvg, givenSvg, skipName;
 
     // get something from argsMap;
     containerId = argsMap["containerId"];
@@ -52,11 +52,7 @@ function HaplotypeGraph(argsMap) {
     nextSvg = argsMap["pagination"][2];
     lastSvg = argsMap["pagination"][3];
     givenSvg = argsMap["pagination"][4];
-    filterSvg = argsMap["pagination"][5];
     skipName = argsMap["skipSampleName"];
-    filterNames = argsMap["filterSampleName"];
-    reset = argsMap["reset"];
-
 
     function getGeneStructureData(data) {
         ori = data[0].ori;
@@ -71,11 +67,6 @@ function HaplotypeGraph(argsMap) {
         allSampleNames = data[0].name;
         utrP5Start = data[0]["5p_UTR_start"];
         utrP3Start = data[0]["3p_UTR_start"];
-    }
-
-    // set total pages 
-    function setTotalPages (tPages) {
-        $("." + totalPageCls).text(tPages);
     }
 
     let _init = function (data, outerWidth) {
@@ -440,19 +431,21 @@ function HaplotypeGraph(argsMap) {
     function unique(arr) {
         return Array.from(new Set(arr));
     }
-
-    let allSNP = [];
-    let uniqueSNP = []
-    let RoundSNP = [];
-
     // When the SNP mutation site is detected, the mutation information is displayed 
     const showSNPMutationInfo = function (xPosition) {
         let changeToXScale = Math.round((xPosition - lineLeft));
 
+        let allSNP = [];
+        $(".snp").each(function () {
+            allSNP.push($(this).attr("x"));
+        });
+        let uniqueSNP = unique(allSNP);
+        let changeSNP = uniqueSNP.map(item => Math.round(item));
+
         // snpPosition.includes(changeToXScale)
-        RoundSNP.forEach(item => {
+        changeSNP.forEach(item => {
             if (changeToXScale - snp_r < item && item < changeToXScale + snp_r) {
-                ix = RoundSNP.indexOf(item);
+                ix = changeSNP.indexOf(item);
                 currentX = uniqueSNP[ix];
                 $(".snp").each(function () {
                     if ($(this).attr("x") === currentX) {
@@ -462,22 +455,7 @@ function HaplotypeGraph(argsMap) {
                     )
                 });
             }
-            // else {
-            //     console.log("in");
-            //     $(".snp").each(function () {
-            //         $(this).attr("opacity", 0);
-            //     })
-            // }
         })
-        // if (targetSNP.length != 0) {
-        //     targetSNP.forEach(ele => {
-        //         $(".snp").each(function () {
-        //             if ($(this).attr("x") === ele) {
-        //                 $(this).attr("opacity", 1);
-        //             }
-        //         })
-        //     })
-        // }
     }
 
     const drawLine = function () {
@@ -489,13 +467,6 @@ function HaplotypeGraph(argsMap) {
 
         const hoverText = svg.append("svg:g").attr("class", "hover-text").append("svg:text").attr("class", "show-text")
             .attr("font-size", 16).attr("fill", "#333").text("").attr("x", 0).attr("y", 0);
-
-        $(".snp").each(function () {
-            allSNP.push($(this).attr("x"));
-        });
-        uniqueSNP = unique(allSNP);
-        RoundSNP = uniqueSNP.map(item => Math.round(item));
-
         svg
             .on("click", function (event) {
                 // get current mouse location, return [mouseX, mouseY]
@@ -543,28 +514,6 @@ function HaplotypeGraph(argsMap) {
         return rt;
     }
 
-
-    // get filter data from variation data
-    function handleDataCutOutOfFilterNames (arr, ixLst) {
-        let rt = [];
-        arr.forEach(d => {
-            let svTemp = {};
-            for (key in d) {
-                if (key === "stat_in_each_sample") {
-                    svTemp[key] = [];
-                    ixLst.forEach(e => {
-                        svTemp[key].push(d[key].slice(e, e + 1));
-                    })
-                } else {
-                    svTemp[key] = d[key];
-                }
-            }
-            rt.push(svTemp);
-        })
-        return rt;
-    }
-
-
     // turn page data
     function firstPageDataInitAndDataPagination(data, start, end) {
         // 返回array，返回的数据包括：
@@ -597,20 +546,15 @@ function HaplotypeGraph(argsMap) {
         let firstPageData = [];
         let fpGs = {};
         let _variation = {};
-        if (_name.indexOf("hap") == 0) {
-            _name = "(" + _name + ")"
-        }
-        _name = _name.replace(/\(/, "\\(").replace(/\)/, "\\)");
         let reg = new RegExp(_name.toLowerCase());
         let ix = -1;
         fpVariation = data[0].variation;
         fpSampleNames = data[0].name;
         //let ix = fpSampleNames.indexOf(_name);
-        fpSampleNames.some((d, index) => {
+        fpSampleNames.forEach((d, index) => {
             let _d = d.toLowerCase();
             if (_d.match(reg)) {
                 ix = index;
-                return true;
             }
         })
         if (ix != -1) {
@@ -635,62 +579,8 @@ function HaplotypeGraph(argsMap) {
             //unknownPageData.push(1);
             //return unknownPageData;
             alert("Sample does not exist!");
-            return firstPageData;
         }
     }
-
-
-    // page filter data
-    function findFilterNamesInData (namesList) {
-        let filterData = [];
-        let ffGs = {};
-        let _variation = {};
-        let ix = -1;
-        let ixList = [];
-        let fullNamesList = [];
-        let varCN = [];
-        let ffVariation = data[0].variation;
-        let ffSampleNames = data[0].name;
-        //let ix = ffSampleNames.indexOf(_name);
-        namesList.forEach(element => {
-            if (element.indexOf("hap") == 0) {
-                element = "(" + element + ")"
-            }
-            element = element.replace(/\(/, "\\(").replace(/\)/, "\\)")
-            let reg = new RegExp(element.toLowerCase());
-            ffSampleNames.forEach((d, index) => {
-                let _d = d.toLowerCase();
-                if (_d.match(reg)) {
-                    ix = index;
-                    if (ix !== -1) {
-                        ixList.push(ix);
-                        fullNamesList.push(ffSampleNames[ix]);
-                        varCN.push(ffVariation.CN.slice(ix, ix + 1));
-                    }
-                }
-            })
-        });
-        ffGs["name"] = fullNamesList;
-        ffGs["exon"] = data[0].exon;
-        ffGs["3p_UTR"] = data[0]["3p_UTR"];
-        ffGs["5p_UTR"] = data[0]["5p_UTR"];
-        ffGs["upstream"] = data[0].upstream;
-        ffGs["end"] = data[0].end;
-        ffGs["ori"] = data[0].ori;
-        ffGs["start"] = data[0].start;
-        ffGs["geneEnd"] = data[0].geneEnd;
-        ffGs["geneName"] = data[0].geneName;
-        _variation["CN"] = varCN;
-        _variation["SNP"] = handleDataCutOutOfFilterNames(ffVariation.SNP, ixList);
-        _variation["SV"] = handleDataCutOutOfFilterNames(ffVariation.SV, ixList);
-        _variation["INDEL"] = handleDataCutOutOfFilterNames(ffVariation.INDEL, ixList);
-        ffGs["variation"] = _variation;
-        filterData.push(ffGs);
-        filterData.push(ixList.length);
-        return filterData;
-    }
-
-
     // remove exist svg
     function removeExistElements() {
         d3.select("#maingroup").remove();
@@ -714,7 +604,6 @@ function HaplotypeGraph(argsMap) {
         renderInit(pageData);
         drawLine();
         setCurrentPageNumber(1);
-        setTotalPages(pages);
     })
     // function handleClickToPreSvg () {
     $("." + preSvg).click(function () {
@@ -727,7 +616,6 @@ function HaplotypeGraph(argsMap) {
             renderInit(pageData);
             drawLine();
             setCurrentPageNumber(currentPageNumber - 1);
-            setTotalPages(pages);
         }
     })
     // function handleClickToNextSvg () {
@@ -741,7 +629,6 @@ function HaplotypeGraph(argsMap) {
             renderInit(pageData);
             drawLine();
             setCurrentPageNumber(currentPageNumber + 1);
-            setTotalPages(pages);
         }
     })
     // function handleClickToLastSvg () {
@@ -752,7 +639,6 @@ function HaplotypeGraph(argsMap) {
         renderInit(pageData);
         drawLine();
         setCurrentPageNumber(pages);
-        setTotalPages(pages);
     })
 
     // input turn page number
@@ -763,7 +649,6 @@ function HaplotypeGraph(argsMap) {
         renderInit(pageData);
         drawLine();
         setCurrentPageNumber(page);
-        setTotalPages(pages);
     }
 
     // Enter page numbers to jump 
@@ -778,7 +663,6 @@ function HaplotypeGraph(argsMap) {
             }
         }
     });
-
     // Jump based on sample name
     // function handleClickToGivenSvg () {
     $("." + givenSvg).click(function () {
@@ -791,40 +675,12 @@ function HaplotypeGraph(argsMap) {
                 renderInit(skipData);
                 drawLine();
                 setCurrentPageNumber(skipData[1]);
-                setTotalPages(pages);
             } else {
                 return;
             }
         } else {
             return;
         }
-    })
-
-    // filter sample names to show svg
-    $("." + filterSvg).click(function () {
-        let filterSampleNames = $("." + filterNames).val();
-        if (filterSampleNames != "" | filterSampleNames != undefined) {
-            let filterNamesList = filterSampleNames.split(" ");
-            let filterData = findFilterNamesInData(filterNamesList);
-            console.log(filterData);
-            if (filterData.length != 0) {
-                // $("." + filterNames).val("");
-                sessionStorage.setItem("reset", "true");
-                localStorage.setItem("data-filter", JSON.stringify(filterData));
-                sessionStorage.setItem("filter-counts", filterData[1]);
-                location.reload();
-            } else {
-                return;
-            }
-        } else {
-            return;
-        }
-    })
-
-    //reset to origin data
-    $("." + reset).click(function () {
-        sessionStorage.setItem("reset", "false");
-        location.reload();
     })
 
     if (resizeWidth != null) {

@@ -112,6 +112,7 @@
                 <svg id="d3-plot" class="svgs" height="480" style="background-color: #ffffff;"></svg>
             </div>
             <div class="pagination">
+                <span class="showFilterCounts" style="font-weight: 600; float: left; padding-left: 50px;"></span>
                 <button class="toFirstSvg">&lt;&lt; First</button>
                 <button class="toPreSvg">&lt; Prev</button>
                 <span>Page</span>
@@ -122,6 +123,11 @@
                 <button class="toLastSvg">Last &gt;&gt;</button>
                 <input type="text" class="skip-samplename" style="width: 100px" placeholder="sample name" />
                 <button class="toGivenSvg">Jump</button>
+                <input type="text" class="filter-samplename" style="width: 300px; margin-left: 25px;"
+                    placeholder="samples/haps " />
+                <button class="toFilterSvg">Filter</button>
+                <button class="reset">Reset</button>
+                <button class="save" onclick="saveDataToFile()">SaveSampleNames</button>
             </div>
             <div id="contentwrap" class="contentwrap">
                 <ul class="tab" id="tab">
@@ -156,11 +162,14 @@
         let plotDiv = "haplotype-plot"
         let totalPages = "totalPages";
         let currentPage = "showCurrentPage";
-        let pagination = ["toFirstSvg", "toPreSvg", "toNextSvg", "toLastSvg", "toGivenSvg"]
+        let pagination = ["toFirstSvg", "toPreSvg", "toNextSvg", "toLastSvg", "toGivenSvg", "toFilterSvg"]
         let skipSampleName = "skip-samplename";
+        let filterSampleName = "filter-samplename";
+        let filterCounts = "showFilterCounts";
         argsMap = {
             "containerId": containerId, "plotDiv": plotDiv, "totalPages": totalPages, "resizeWidth": null,
-            "showCurrentPage": currentPage, "pagination": pagination, "skipSampleName": skipSampleName
+            "showCurrentPage": currentPage, "pagination": pagination, "skipSampleName": skipSampleName,
+            "filterSampleName": filterSampleName, "showFilterCounts": filterCounts, "reset": "reset"
         }
 
         function getResDataInit() {
@@ -235,7 +244,7 @@
         })
 
         // start
-        let flag = sessionStorage.getItem("flag") == undefined ? "false" : "true";
+        let flag = sessionStorage.getItem("flag") == undefined ? "false" : sessionStorage.getItem("flag");
         // console.log(flag);
         if (flag === "false") {
             response = getResDataInit();
@@ -247,9 +256,18 @@
             argsMap["data"] = data;
             HaplotypeGraph(argsMap);
         } else if (flag === "true") {
-            let localStorageData = JSON.parse(localStorage.getItem("data"));
+            // let localStorageData = JSON.parse(localStorage.getItem("data"));
+            let localStorageData, filterNumber;
+            let resetFlag = sessionStorage.getItem("reset") == undefined ? "false" : sessionStorage.getItem("reset");
+            if (resetFlag === "true") {
+                localStorageData = JSON.parse(localStorage.getItem("data-filter"));
+            } else if (resetFlag === "false") {
+                localStorageData = JSON.parse(localStorage.getItem("data"));
+            }
+            filterNumber = sessionStorage.getItem("filter-counts") == undefined ? "" : sessionStorage.getItem("filter-counts");
             let submitName = sessionStorage.getItem("submitName");
             $(".showGeneName").text(submitName);
+            if (filterNumber != "") $("." + filterCounts).text("Sample Number:  " + filterNumber);
             let reWidth = sessionStorage.getItem("width") != undefined ? sessionStorage.getItem("width") : null;
             if (reWidth != null) {
                 argsMap["resizeWidth"] = reWidth;
