@@ -235,12 +235,12 @@ function HaplotypeGraph(argsMap) {
             for (let j = 0; j < INDEL.length; j++) {
                 let item = INDEL[j];
                 if (item.type == 'DEL') {
-                    if (item.stat_in_each_sample[i] == '1') {
+                    if (item.stat_in_each_sample[i] == '1' || item.stat_in_each_sample[i] == '0/1') {
                         let bind = [item.position, sampleNames[i], gsHeightMin, item.length];
                         del.push(bind);
                     }
                 } else if (item.type == 'INS') {
-                    if (item.stat_in_each_sample[i] == '1') {
+                    if (item.stat_in_each_sample[i] == '1' || item.stat_in_each_sample[i] == '0/1') {
                         let bind = [item.position, sampleNames[i], gsHeightMin, item.length];
                         ins.push(bind);
                     }
