@@ -1,21 +1,17 @@
 // Special character escape
-function htmlEscape(text) {
+function htmlEscape (text) {
     return text.replace(/[<>"&]/g, function (match, pos, originalText) {
         switch (match) {
-            case "<":
-                return "&lt;";
-            case ">":
-                return "&gt;";
-            case "&":
-                return "&amp;";
-            case "\"":
-                return "&quot;";
+            case "<": return "&lt;";
+            case ">": return "&gt;";
+            case "&": return "&amp;";
+            case "\"": return "&quot;";
         }
     });
 }
 
 // Processing original data 
-function handleResData(data) {
+function handleResData (data) {
     let temp = [];
     let geneStructure = data["gene_structure"];
     let sampleNames = data["sample_name"];
@@ -52,17 +48,13 @@ function handleResData(data) {
     if (+(gs_obj["start"]) > 0) {
         if (p3.length != 0) {
             gs_obj["3p_UTR"] = p3["1"] - p3["0"] + 1 + gs_obj["start"];
-            gs_obj["3p_UTR_start"] = p3["0"];
         } else {
             gs_obj["3p_UTR"] = 0;
-            gs_obj["3p_UTR_start"] = 0;
         }
         if (p5.length != 0) {
             gs_obj["5p_UTR"] = p5["1"] - p5["0"] + 1 + gs_obj["start"];
-            gs_obj["5p_UTR_start"] = p5["0"];
         } else {
             gs_obj["5p_UTR"] = 0;
-            gs_obj["5p_UTR_start"] = 0;
         }
         gs_obj["upstream"] = upstream["1"] - upstream["0"] + 1 + gs_obj["start"];
         let _exon = [];
@@ -73,18 +65,14 @@ function handleResData(data) {
         gs_obj["exon"] = _exon;
     } else {
         if (p3.length != 0) {
-            gs_obj["3p_UTR"] = p3["1"] - p3["0"] + 1;
-            gs_obj["3p_UTR_start"] = p3["0"];
+            gs_obj["3p_UTR"] = p3["1"] - p3["0"] + 1
         } else {
             gs_obj["3p_UTR"] = 0;
-            gs_obj["3p_UTR_start"] = 0;
         }
         if (p5.length != 0) {
             gs_obj["5p_UTR"] = p5["1"] - p5["0"] + 1;
-            gs_obj["5p_UTR_start"] = p5["0"];
         } else {
             gs_obj["5p_UTR"] = 0;
-            gs_obj["5p_UTR_start"] = 0;
         }
         gs_obj["upstream"] = upstream["1"] - upstream["0"] + 1;
         gs_obj["exon"] = exon;
@@ -98,13 +86,10 @@ function handleResData(data) {
 }
 
 // download data 
-function handleClickDownloadData() {
+function handleClickDownloadData () {
     let cls = ".download";
     let getGeneName = $(".showGeneName").text()
-    let data = {
-        "name": getGeneName,
-        "act": "down"
-    };
+    let data = { "name": getGeneName, "act": "down" };
     console.log(getGeneName);
     // http://hap.bioinf.club/
     if (getGeneName != "") {
@@ -113,9 +98,7 @@ function handleClickDownloadData() {
             url: "http://hap.bioinf.club/cgi-bin/down.py",
             data: data,
             contentType: "application/x-www-form-urlencoded",
-            header: {
-                "Access-Control-Allow-Origin": "*"
-            },
+            header: { "Access-Control-Allow-Origin": "*" },
             async: true,
             beforeSend: function () {
                 setButtonState(cls);
@@ -134,8 +117,7 @@ function handleClickDownloadData() {
         return;
     }
 }
-
-function downloadFile(url, filename) {
+function downloadFile (url, filename) {
     // 创建隐藏的可下载链接
     var eleLink = document.createElement('a');
     //设置文件下载名
@@ -156,7 +138,7 @@ function downloadFile(url, filename) {
 };
 
 // click btn to open new window and show gene tree
-function handleClickToDrawTree(cls, data) {
+function handleClickToDrawTree (cls, data) {
     let btnState = $(cls).attr("disabled");
     if (btnState === "disabled") {
         return;
@@ -184,29 +166,21 @@ function handleClickToDrawTree(cls, data) {
         });
     }
 }
-
-function handleClickToDrawGeneTree() {
+function handleClickToDrawGeneTree () {
     let cls = ".gene-phy";
     let showGeneName = $(".showGeneName").text()
-    let data = {
-        "name": showGeneName,
-        "act": "tree1"
-    };
+    let data = { "name": showGeneName, "act": "tree1" };
     handleClickToDrawTree(cls, data);
 }
-
-function handleClickToDrawHapTree() {
+function handleClickToDrawHapTree () {
     let cls = ".hap-phy";
     let showGeneName = $(".showGeneName").text();
-    let data = {
-        "name": showGeneName,
-        "act": "tree2"
-    };
+    let data = { "name": showGeneName, "act": "tree2" };
     handleClickToDrawTree(cls, data);
 }
 
 // show loading effect
-function loadingEffect() {
+function loadingEffect () {
     var loading = $('#loading-effect');
     //loading.hide();
     $(document).ajaxStart(function () {
@@ -217,19 +191,19 @@ function loadingEffect() {
 }
 
 // Set button state when making Ajax request
-function setButtonState(cls) {
+function setButtonState (cls) {
     $(cls).attr("disabled", true);
     $(cls).css("opacity", 0.6);
 }
 
 // remove button state when Ajax request done
-function removeButtonState(cls) {
+function removeButtonState (cls) {
     $(cls).removeAttr("disabled");
     $(cls).css("opacity", 1);
 }
 
 // show table 
-function csvDataToHtml(tab) {
+function csvDataToHtml (tab) {
     let geneName = $(".showGeneName").text()
     let csvPath = "../gene_data/" + geneName + "." + tab + ".csv";
     // let csvPath = "../gene_data/TraesCS2D02G079600." + tab + ".csv"
@@ -247,8 +221,7 @@ function csvDataToHtml(tab) {
         })
     }
 }
-
-function showTable(data) {
+function showTable (data) {
     columns = data.columns;
     let theadHtml = "";
     let tbodyHtml = ""
@@ -269,7 +242,7 @@ function showTable(data) {
 }
 
 // show th td title
-function showTableText() {
+function showTableText () {
     $(".tbl-content").mouseover(function () {
         $("tbody tr").each(function (i) {
             $(this).children('td').each(function (j) {
@@ -281,7 +254,7 @@ function showTableText() {
 }
 
 // enter to get other gene
-function getResData(name) {
+function getResData (name) {
     let _url = "../gene_data/" + name + ".json";
     let _data = null;
     $.ajax({
@@ -300,7 +273,7 @@ function getResData(name) {
     return _data;
 }
 
-function handleSubmitRes(data, name) {
+function handleSubmitRes (data, name) {
     response = getResData(name);
     if (response != null) {
         dealData = handleResData(response);
@@ -309,25 +282,4 @@ function handleSubmitRes(data, name) {
         alert("data not exist!");
         return response;
     }
-}
-
-function changeShowInfo(flag) {
-    if (flag) {
-        $(".snp").each(function () {
-            $(this).attr("opacity", 1)
-        });
-    } else {
-        $(".snp").each(function () {
-            $(this).attr("opacity", 0)
-        });
-    }
-}
-
-function showCurrentPageSNPMutationInfo() {
-    $(function () {
-        $(".switch").change(function () {
-            let change = $(this).prop('checked');
-            changeShowInfo(change);
-        })
-    });
 }

@@ -95,7 +95,7 @@
                             <text fill="currentColor" y="3" dy="0.71em">EXON</text>
                         </g>
                         <text x="0" y="-16" fill="currentColor" text-anchor="start" font-weight="bold"
-                            class="title">Variation And Gene Structure Color Distribution
+                            class="title">Color-coding the different types of variations and gene structure
                         </text>
                     </g>
                 </svg>
@@ -104,6 +104,7 @@
                         phylotree</button>
                     <button class="ref-btn hap-phy btn-loading" onclick="handleClickToDrawHapTree()">hap
                         phylotree</button>
+                    <input type="checkbox" class="switch" title="show all snp information">
                 </div>
             </div>
             <div class="showGeneName"></div>
@@ -168,7 +169,7 @@
             sessionStorage.setItem("submitName", submitName);
             $.ajax({
                 type: "GET",
-                //url: "../static/example_update1.json",
+                //url: "../static/example_update2.json",
                 url: "../gene_data/TraesCS2D02G079600.json",
                 dataType: "json",
                 contentType: "application/json; charset=utf-8",
@@ -282,6 +283,7 @@
         csvDataToHtml("indel");
         showTableText();
         loadingEffect();
+        showCurrentPageSNPMutationInfo();
     </script>
 </body>
 
