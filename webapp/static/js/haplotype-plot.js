@@ -55,6 +55,7 @@ function HaplotypeGraph(argsMap) {
     filterSvg = argsMap["pagination"][5];
     skipName = argsMap["skipSampleName"];
     filterNames = argsMap["filterSampleName"];
+    filterCounts = argsMap["showFilterCounts"];
     reset = argsMap["reset"];
 
 
@@ -649,6 +650,7 @@ function HaplotypeGraph(argsMap) {
         let ixList = [];
         let fullNamesList = [];
         let varCN = [];
+        let data = JSON.parse(localStorage.getItem("data"));
         let ffVariation = data[0].variation;
         let ffSampleNames = data[0].name;
         //let ix = ffSampleNames.indexOf(_name);
@@ -812,6 +814,7 @@ function HaplotypeGraph(argsMap) {
                 sessionStorage.setItem("reset", "true");
                 localStorage.setItem("data-filter", JSON.stringify(filterData));
                 sessionStorage.setItem("filter-counts", filterData[1]);
+                sessionStorage.setItem("filter-samples", filterSampleNames);
                 location.reload();
             } else {
                 return;
@@ -824,6 +827,7 @@ function HaplotypeGraph(argsMap) {
     //reset to origin data
     $("." + reset).click(function () {
         sessionStorage.setItem("reset", "false");
+        sessionStorage.setItem("filter-counts", "");
         location.reload();
     })
 

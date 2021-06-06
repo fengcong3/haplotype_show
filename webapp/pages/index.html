@@ -261,6 +261,9 @@
             let resetFlag = sessionStorage.getItem("reset") == undefined ? "false" : sessionStorage.getItem("reset");
             if (resetFlag === "true") {
                 localStorageData = JSON.parse(localStorage.getItem("data-filter"));
+                filterSamples = sessionStorage.getItem("filter-samples");
+                filterSamplesList = filterSamples.trim().split(" ");
+                $("." + filterSampleName).val(filterSamplesList);
             } else if (resetFlag === "false") {
                 localStorageData = JSON.parse(localStorage.getItem("data"));
             }
@@ -285,6 +288,7 @@
             $('#tab > li').each(function () {
                 if ($(this).index() == num) {
                     $(this).attr("class", "li current");
+                    sessionStorage.setItem("li-index", num);
                     if (num == 1) {
                         csvDataToHtml("snp");
                     } else if (num == 2) {
@@ -297,8 +301,30 @@
                 }
             });
         });
-
-        csvDataToHtml("indel");
+        
+        // load pre table sheet at after flash
+        function loadPreTable(preNum) {
+            $('#tab > li').each(function () {
+                if ($(this).index() == preNum) {
+                    $(this).attr("class", "li current");
+                } else {
+                    $(this).attr("class", "li");
+                }
+            });
+        }
+        let reloadPreLiNum = sessionStorage.getItem("li-index") != undefined ? parseInt(sessionStorage.getItem("li-index")) : 0;
+        if (reloadPreLiNum === 0) {
+            loadPreTable(reloadPreLiNum);
+            csvDataToHtml("indel");
+        } else if (reloadPreLiNum === 1) {
+            // console.log("in")
+            loadPreTable(reloadPreLiNum);
+            csvDataToHtml("snp");
+        } else if (reloadPreLiNum === 2) {
+            loadPreTable(reloadPreLiNum);
+            csvDataToHtml("sv");
+        }
+        // csvDataToHtml("indel");
         showTableText();
         loadingEffect();
         showCurrentPageSNPMutationInfo();
@@ -306,3 +332,4 @@
 </body>
 
 </html>
+
