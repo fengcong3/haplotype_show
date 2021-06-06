@@ -88,7 +88,13 @@ def get_gene_structure(chr_name,gene_name,gff_file):
                         gene_structure["3p_UTR"].append([int(ls[3]),int(ls[4])])
                     else:
                         pass
-    
+    ##Make the upstream longer
+    if gene_structure["ori"] == "+":
+        gene_structure["upstream"][0][1] = gene_structure["exon"][0][0]-1
+        gene_structure["gene"][0][0] = gene_structure["exon"][0][0]
+    else:
+        gene_structure["upstream"][0][0] = gene_structure["exon"][-1][1]+1
+        gene_structure["gene"][0][1] = gene_structure["exon"][-1][1]
     return gene_structure
                 
 def deal_SNP(chr_name,snp_sample_order,gene_structure,snp_file):
@@ -181,10 +187,18 @@ def deal_SNP(chr_name,snp_sample_order,gene_structure,snp_file):
             match = pattern.match(ls[7])
             ann = match.groups()[0]
             ann_list = ann.split(",")
+            ### if have *.1 then use it else use the first one ann
+            j_get=False
             for a in ann_list:
                 ann_ls = a.split("|")
+                if  ann_ls[6].endswith(".1"):
+                    tmp_snp_inf_item["ann"].append([ann_ls[0],ann_ls[1],ann_ls[3],ann_ls[6],ann_ls[9],ann_ls[10]])
+                    j_get=True
+                    break
+            if not j_get:
+                ann_ls = ann_list[0].split("|")
                 tmp_snp_inf_item["ann"].append([ann_ls[0],ann_ls[1],ann_ls[3],ann_ls[6],ann_ls[9],ann_ls[10]])
-                break
+
             for sample in ls[9:]:
                 gt = sample.split(":")[0]
                 if gt[0] == gt[-1]:
@@ -289,10 +303,18 @@ def deal_indel(chr_name,indel_sample_order,gene_structure,indel_file):
             match = pattern.match(ls[7])
             ann = match.groups()[0]
             ann_list = ann.split(",")
+
+            j_get=False
             for a in ann_list:
                 ann_ls = a.split("|")
+                if  ann_ls[6].endswith(".1"):
+                    tmp_indel_inf_item["ann"].append([ann_ls[0],ann_ls[1],ann_ls[3],ann_ls[6],ann_ls[9],ann_ls[10]])
+                    j_get=True
+                    break
+            if not j_get:
+                ann_ls = ann_list[0].split("|")
                 tmp_indel_inf_item["ann"].append([ann_ls[0],ann_ls[1],ann_ls[3],ann_ls[6],ann_ls[9],ann_ls[10]])
-                break
+
             for sample in ls[9:]:
                 gt = sample.split(":")[0]
                 if gt[0] == gt[-1]:
@@ -449,7 +471,21 @@ def deal_sv(chr_name,sv_sample_order,gene_structure,sv_file,part_len):
 def filter_and_sort_sv(SV_and_INF,snp_sample_order,sv_sample_order):
     new_order_index=[]
     for i in snp_sample_order :
-        new_order_index.append(sv_sample_order.index(i))
+        if i in sv_sample_order:#if sv matrix have this sample
+            new_order_index.append(sv_sample_order.index(i))
+        else: #if sv matrix dont have this sample , assign this sample to missing 
+            #append this sample to sv sample order
+            sv_sample_order.append(i)
+            #add inf for this sample
+            for item in SV_and_INF[0]:
+                item["stat_in_each_sample"].append("./.")
+            # if this region have SV or not
+            if len(SV_and_INF[0]) >0:
+                new_order_index.append(len(SV_and_INF[0][0]["stat_in_each_sample"])-1)
+            else:
+                pass
+
+
     # print(len(new_order_index))
     ##modify each SV item
     for item in SV_and_INF[0]:
@@ -469,7 +505,7 @@ def filter_and_sort_snp_or_indel(SNP_and_INF,hap_sample_order,snp_sample_order):
 def deal_cnv(gene_name,cnv_sample_order,cnv_file):
     sys.stderr.write("resolve cnv ...\n")
     '''
-    "CN":[1,3,2,2,2,2]
+    "CN":[1,3,2,2,2,2，0.5]
     '''
     gene_name=gene_name.split(".")[0]
     CN=[] 
@@ -479,31 +515,39 @@ def deal_cnv(gene_name,cnv_sample_order,cnv_file):
     while line.startswith("##"):
         line = inf.readline()
     
-    cnv_sample_order = line.strip().split()[9:]
+    # cnv_sample_order = line.strip().split()[9:]  #it's done for vcf file
+    cnv_sample_order = line.strip().split()[1:] #it's for tab seperate format
     line = inf.readline()
     while line:
         ls = line.strip().split()
-        if ls[2] != gene_name:
+        if ls[0] != gene_name:
             pass
         else:
-            for gt in ls[9:]:
-                if gt[0] == "0" :
-                    CN.append("1")
-                else:
-                    CN.append("N") # this is the first version,dont have indeed copy number
+            # for gt in ls[9:]:
+            #     if gt[0] == "0" :
+            #         CN.append("1")
+            #     else:
+            #         CN.append("N") # this is the first version,dont have indeed copy number
+            for gt in ls[1:]:
+                CN.append(gt)
 
         line = inf.readline()
     inf.close()
 
     if len(CN) ==0:
-        CN = ["1" for n in range(len(cnv_sample_order))]
+        CN = ["Unknown" for n in range(len(cnv_sample_order))]
 
     return (CN,cnv_sample_order)
 
 def filter_and_sort_cnv(CN,snp_sample_order,cnv_sample_order):
     new_order_index=[]
     for i in snp_sample_order :
-        new_order_index.append(cnv_sample_order.index(i))
+        if i in cnv_sample_order:
+            new_order_index.append(cnv_sample_order.index(i))
+        else:
+            CN[0].append("Unknown")
+            cnv_sample_order.append(i)
+            new_order_index.append(len(CN)-1)
     
     CN = [CN[0][n] for  n in new_order_index]
     return CN
@@ -918,40 +962,71 @@ if __name__ == "__main__":
     ouf.write(js)
     ouf.close()
 
-
+    
     #out info in csv format
     ##SNP
     ouf = open(output_file+".snp.csv","w")
-    ouf.write("%s,%s,%s,%s,allele,Annotation,Gene_Name,Feature_ID,HGVS.c,HGVS.p\n"%("chr","position","ref","alt"))
+    ouf.write("%s,%s,%s,%s,allele,Annotation,Gene_Name,Feature_ID,HGVS.c,HGVS.p,alt_hap\n"%("chr","position","ref","alt"))
     keys=["chr","position","ref","alt"] #+ "ann"
     for i in range(len(SNP_and_INF[1])):
         for key in keys:
             ouf.write("%s,"%( str(SNP_and_INF[1][i][key]) ) )
         
-        ouf.write("%s\n"%(",".join(SNP_and_INF[1][i]["ann"][0])))
+        ouf.write("%s,"%(",".join(SNP_and_INF[1][i]["ann"][0])))
+
+        ## which hap have this alt allele
+        alt_hap_list=[]
+        for index,hap in enumerate(cluster_inf):
+            # print(hap[i],SNP_and_INF[1][i]["alt"])
+            # if i == 3:
+            #     print(hap[i],SNP_and_INF[1][i]["alt"])
+            if hap[i][-1] == SNP_and_INF[1][i]["alt"]:  #1/1  0/1
+                alt_hap_list.append("hap%d"%(index+1))
+
+        
+        ouf.write("%s\n"%("/".join(alt_hap_list)))
+
 
     ouf.close()
 
     ##indel 
     ouf = open(output_file+".indel.csv","w")
-    ouf.write("%s,%s,%s,%s,%s,type,allele,Annotation,Gene_Name,Feature_ID,HGVS.c,HGVS.p\n"%("chr","position","length","ref","alt"))
+    ouf.write("%s,%s,%s,%s,%s,type,allele,Annotation,Gene_Name,Feature_ID,HGVS.c,HGVS.p,alt_hap\n"%("chr","position","length","ref","alt"))
     keys=["chr","position","length","ref","alt"] #+ "ann"
     for i in range(len(INDEL_and_INF[1])):
         for key in keys:
             ouf.write("%s,"%( str(INDEL_and_INF[1][i][key]) ) )
         ouf.write("%s,"%( str(INDEL_and_INF[0][i]["type"]) ) )
-        ouf.write("%s\n"%(",".join(INDEL_and_INF[1][i]["ann"][0])))
+        ouf.write("%s,"%(",".join(INDEL_and_INF[1][i]["ann"][0])))
+
+        ## which hap have this alt allele
+        alt_hap_list=[]
+        for index,hap in enumerate(cluster_inf):
+            # if i == 76:
+            #     # print(INDEL_and_INF[1][i])
+            #     print(hap[i+len(SNP_and_INF[1])],INDEL_and_INF[1][i]["alt"])
+            if hap[i+len(SNP_and_INF[1])][-1] == "1" :
+                alt_hap_list.append("hap%d"%(index+1))
+
+        ouf.write("%s\n"%("/".join(alt_hap_list)))
 
     ouf.close()
 
     ##sv
     ouf = open(output_file+".sv.csv","w")
-    ouf.write("%s,%s,%s,%s,%s,type\n"%("chr","position","length","ref","alt"))
+    ouf.write("%s,%s,%s,%s,%s,type,alt_hap\n"%("chr","position","length","ref","alt"))
     keys=["chr","position","length","ref","alt"] #+ "ann"
     for i in range(len(SV_and_INF[1])):
         for key in keys:
             ouf.write("%s,"%( str(SV_and_INF[1][i][key]) ) )
-        ouf.write("%s\n"%( str(SV_and_INF[0][i]["type"]) ) )
+        ouf.write("%s,"%( str(SV_and_INF[0][i]["type"]) ) )
         # ouf.write("%s\n"%(",".join(INDEL_and_INF[1][i]["ann"][0])))
 
+        ## which hap have this alt allele
+        alt_hap_list=[]
+        for index,hap in enumerate(cluster_inf):
+            if hap[i+len(SNP_and_INF[1])+len(INDEL_and_INF[1])][-1] == "1":
+                alt_hap_list.append("hap%d"%(index+1))
+
+        ouf.write("%s\n"%("/".join(alt_hap_list)))
     ouf.close()
