@@ -658,6 +658,10 @@ function HaplotypeGraph(argsMap) {
             if (element.indexOf("hap") == 0) {
                 element = "(" + element + ")"
             }
+            let leftBracketIx = element.indexOf("(");
+            if (leftBracketIx === -1) {
+                element = element + "(";
+            }
             element = element.replace(/\(/, "\\(").replace(/\)/, "\\)")
             let reg = new RegExp(element.toLowerCase());
             ffSampleNames.forEach((d, index) => {
@@ -689,6 +693,7 @@ function HaplotypeGraph(argsMap) {
         ffGs["variation"] = _variation;
         filterData.push(ffGs);
         filterData.push(ixList.length);
+        sessionStorage.setItem("filter-samples", JSON.stringify(fullNamesList));
         return filterData;
     }
 

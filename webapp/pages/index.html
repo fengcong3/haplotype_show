@@ -261,8 +261,8 @@
             let resetFlag = sessionStorage.getItem("reset") == undefined ? "false" : sessionStorage.getItem("reset");
             if (resetFlag === "true") {
                 localStorageData = JSON.parse(localStorage.getItem("data-filter"));
-                filterSamples = sessionStorage.getItem("filter-samples");
-                filterSamplesList = filterSamples.trim().split(" ");
+                filterSamples = JSON.parse(sessionStorage.getItem("filter-samples"));
+                //filterSamplesList = filterSamples.trim().split(" ");
                 $("." + filterSampleName).val(filterSamplesList);
             } else if (resetFlag === "false") {
                 localStorageData = JSON.parse(localStorage.getItem("data"));
