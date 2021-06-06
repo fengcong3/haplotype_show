@@ -1,4 +1,4 @@
-function HaplotypeGraph (argsMap) {
+function HaplotypeGraph(argsMap) {
     let self = this;
 
     // 常量
@@ -24,7 +24,7 @@ function HaplotypeGraph (argsMap) {
     let containerId, container, plotDiv, width, height, svg, totalPageCls, resizeWidth;
     let _snp, graph, bindHeight, sampleNames, geneEnd, geneName, allSampleNames;
     let innerWidth, innerHeight, lineLeft, lineRight, geneLength;
-    let xScale, yScale, xScaleMax, start, ori;
+    let xScale, yScale, xScaleMax, start, ori, utrP3Start, utrP5Start;
     let gsHeight = 28;
     let gsHeightMin = 12;
     let snp_r = 2.5;
@@ -34,7 +34,9 @@ function HaplotypeGraph (argsMap) {
     let pageMaxNumber = 10;
     let currentPageNumber, pages;
     let xAxisGroupTop, dupWidth, invWidth;
-    let yValue = (datum) => { return datum.name };
+    let yValue = (datum) => {
+        return datum.name
+    };
     let data, pageData;
     let firstSvg, preSvg, nextSvg, lastSvg, givenSvg, skipName;
 
@@ -52,7 +54,7 @@ function HaplotypeGraph (argsMap) {
     givenSvg = argsMap["pagination"][4];
     skipName = argsMap["skipSampleName"];
 
-    function getGeneStructureData (data) {
+    function getGeneStructureData(data) {
         ori = data[0].ori;
         start = data[0].start;
         geneEnd = data[0].geneEnd;
@@ -63,6 +65,8 @@ function HaplotypeGraph (argsMap) {
             xScaleMax = data[0].end;
         }
         allSampleNames = data[0].name;
+        utrP5Start = data[0]["5p_UTR_start"];
+        utrP3Start = data[0]["3p_UTR_start"];
     }
 
     let _init = function (data, outerWidth) {
@@ -170,40 +174,6 @@ function HaplotypeGraph (argsMap) {
                 .attr("y", yScale(d[1]) + bindHeight / 2 - d[2] / 2).attr("height", d[2]).attr("width", xScale(d[3]))
         })
 
-        //绘制5p_UTR
-        utrP5 = [];
-        if (data[0]["5p_UTR"] != 0) {
-            if (ori === '+') {
-                for (let i = 0; i < sampleNames.length; i++) {
-                    let bind = [data[0].upstream + start, sampleNames[i], gsHeight, data[0]["5p_UTR"]]
-                    utrP5.push(bind);
-                }
-            } else if (ori === '-') {
-                for (let i = 0; i < sampleNames.length; i++) {
-                    let bind = [start, sampleNames[i], gsHeight, data[0]["5p_UTR"]]
-                    utrP5.push(bind);
-                }
-            }
-
-            utrP5.forEach(d => {
-                graph.append("rect").attr("fill", color.utrP5).attr("opacity", 1).attr("x", xScale(d[0]))
-                    .attr("y", yScale(d[1]) + bindHeight / 2 - d[2] / 2)
-                    .attr("height", d[2]).attr("width", xScale(d[3]))
-            })
-        }
-
-        //绘制3p_UTR
-        utrP3 = [];
-        for (let i = 0; i < sampleNames.length; i++) {
-            let bind = [geneEnd - data[0]["3p_UTR"] + start, sampleNames[i], gsHeight, data[0]["3p_UTR"]]
-            utrP3.push(bind);
-        }
-
-        utrP3.forEach(d => {
-            graph.append("rect").attr("fill", color.utrP3).attr("opacity", 1).attr("x", xScale(d[0]))
-                .attr("y", yScale(d[1]) + bindHeight / 2 - d[2] / 2).attr("height", d[2]).attr("width", xScale(d[3]))
-        })
-
         //绘制exon 
         exon = [];
         for (let i = 0; i < sampleNames.length; i++) {
@@ -217,6 +187,35 @@ function HaplotypeGraph (argsMap) {
             graph.append("rect").attr("fill", color.exon).attr("opacity", 1).attr("x", xScale(d[0]))
                 .attr("y", yScale(d[1]) + bindHeight / 2 - d[2] / 2).attr("height", d[2]).attr("width", xScale(d[3]))
         })
+
+        //绘制5p_UTR
+        utrP5 = [];
+        if (data[0]["5p_UTR"] != 0) {
+            for (let i = 0; i < sampleNames.length; i++) {
+                let bind = [utrP5Start, sampleNames[i], gsHeight, data[0]["5p_UTR"]]
+                utrP5.push(bind);
+            }
+
+            utrP5.forEach(d => {
+                graph.append("rect").attr("fill", color.utrP5).attr("opacity", 1).attr("x", xScale(d[0]))
+                    .attr("y", yScale(d[1]) + bindHeight / 2 - d[2] / 2)
+                    .attr("height", d[2]).attr("width", xScale(d[3]))
+            })
+        }
+
+        //绘制3p_UTR
+        utrP3 = [];
+        if (data[0]["3p_UTR"] != 0) {
+            for (let i = 0; i < sampleNames.length; i++) {
+                let bind = [utrP3Start, sampleNames[i], gsHeight, data[0]["3p_UTR"]]
+                utrP3.push(bind);
+            }
+
+            utrP3.forEach(d => {
+                graph.append("rect").attr("fill", color.utrP3).attr("opacity", 1).attr("x", xScale(d[0]))
+                    .attr("y", yScale(d[1]) + bindHeight / 2 - d[2] / 2).attr("height", d[2]).attr("width", xScale(d[3]))
+            })
+        }
 
         //绘制INDEL插入缺失
         del = [];
@@ -429,7 +428,7 @@ function HaplotypeGraph (argsMap) {
         }
     }
     // array Deduplication
-    function unique (arr) {
+    function unique(arr) {
         return Array.from(new Set(arr));
     }
     // When the SNP mutation site is detected, the mutation information is displayed 
@@ -451,8 +450,7 @@ function HaplotypeGraph (argsMap) {
                 $(".snp").each(function () {
                     if ($(this).attr("x") === currentX) {
                         $(this).attr("opacity", 1)
-                    }
-                    else (
+                    } else(
                         $(this).attr("opacity", 0)
                     )
                 });
@@ -497,7 +495,7 @@ function HaplotypeGraph (argsMap) {
     }
 
     // 处理variation的数据
-    function handleDataCutOut (arr, start, end) {
+    function handleDataCutOut(arr, start, end) {
         /*
         arr: 处理的数组; start: 截取开始的位置; end: 截取结束的位置
         */
@@ -517,7 +515,7 @@ function HaplotypeGraph (argsMap) {
     }
 
     // turn page data
-    function firstPageDataInitAndDataPagination (data, start, end) {
+    function firstPageDataInitAndDataPagination(data, start, end) {
         // 返回array，返回的数据包括：
         //sampleNames:[], exon:[[]], variation: {CN:[],INDEL:[{}],SNP:[{}],SV:[{}]}, 3p, 5p, upstream
         if (start === undefined) {
@@ -544,7 +542,7 @@ function HaplotypeGraph (argsMap) {
         return firstPageData;
     }
     // page jump data
-    function findSampleNameInData (_name) {
+    function findSampleNameInData(_name) {
         let firstPageData = [];
         let fpGs = {};
         let _variation = {};
@@ -580,21 +578,21 @@ function HaplotypeGraph (argsMap) {
             //let unknownPageData = firstPageDataInitAndDataPagination(data, 0, pageMaxNumber);
             //unknownPageData.push(1);
             //return unknownPageData;
-	    alert("Sample does not exist!");
+            alert("Sample does not exist!");
         }
     }
     // remove exist svg
-    function removeExistElements () {
+    function removeExistElements() {
         d3.select("#maingroup").remove();
         d3.select(".hover-line").remove();
         d3.select(".hover-text").remove();
     }
 
-    function getCurrentPageNumber () {
+    function getCurrentPageNumber() {
         return +($("." + CurrentPageCls).text());
     }
 
-    function setCurrentPageNumber (num) {
+    function setCurrentPageNumber(num) {
         $("." + CurrentPageCls).text(num);
     }
 
@@ -644,7 +642,7 @@ function HaplotypeGraph (argsMap) {
     })
 
     // input turn page number
-    function handleClickToInputSvg (page) {
+    function handleClickToInputSvg(page) {
         removeExistElements();
         let pageData = firstPageDataInitAndDataPagination(data,
             (page - 1) * pageMaxNumber, (page) * pageMaxNumber);
