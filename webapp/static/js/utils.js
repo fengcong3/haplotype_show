@@ -325,7 +325,14 @@ function handleClickTableCell () {
 }
 
 function saveDataToFile () {
-    let text = $(".filter-samplename").val();
+    let text = "";
+    let textList = JSON.parse(sessionStorage.getItem("filter-full-samples"));
+    if (textList === undefined) {
+        return;
+    }
+    textList.forEach(ele => {
+        text += ele + "\n";
+    })
     let time = new Date().format("MM-dd-hh:mm:ss");
     let strFile = time + "-saveFilterFile.txt";
     let element = document.createElement('a');

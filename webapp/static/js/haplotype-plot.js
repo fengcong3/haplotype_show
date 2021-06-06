@@ -693,7 +693,7 @@ function HaplotypeGraph(argsMap) {
         ffGs["variation"] = _variation;
         filterData.push(ffGs);
         filterData.push(ixList.length);
-        sessionStorage.setItem("filter-samples", JSON.stringify(fullNamesList));
+        sessionStorage.setItem("filter-full-samples", JSON.stringify(fullNamesList));
         return filterData;
     }
 
