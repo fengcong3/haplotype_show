@@ -55,12 +55,12 @@ function handleResData(data) {
     if (geneStructure["3p_UTR"].length === 0) {
         p3 = [];
     } else {
-        p3 = geneStructure["3p_UTR"];
+        p3 = geneStructure["3p_UTR"]["0"];
     }
     if (geneStructure["5p_UTR"].length === 0) {
         p5 = [];
     } else {
-        p5 = geneStructure["5p_UTR"];
+        p5 = geneStructure["5p_UTR"]["0"];
     }
 
     let gs_obj = {};
@@ -75,23 +75,19 @@ function handleResData(data) {
     }
 
     if (+(gs_obj["start"]) > 0) {
-        let _p3 = [];
-        let _p5 = [];
         if (p3.length != 0) {
-            p3.forEach(d => {
-                _p3.push([d["0"], d["1"] + 1 + gs_obj["start"]]);
-            })
-            gs_obj["3p_UTR"] = _p3;
+            gs_obj["3p_UTR"] = p3["1"] - p3["0"] + 1 + gs_obj["start"];
+            gs_obj["3p_UTR_start"] = p3["0"];
         } else {
-            gs_obj["3p_UTR"] = [];
+            gs_obj["3p_UTR"] = 0;
+            gs_obj["3p_UTR_start"] = 0;
         }
         if (p5.length != 0) {
-            p5.forEach(d => {
-                _p5.push([d["0"], d["1"] + 1 + gs_obj["start"]]);
-            })
-            gs_obj["5p_UTR"] = _p5;
+            gs_obj["5p_UTR"] = p5["1"] - p5["0"] + 1 + gs_obj["start"];
+            gs_obj["5p_UTR_start"] = p5["0"];
         } else {
-            gs_obj["5p_UTR"] = [];
+            gs_obj["5p_UTR"] = 0;
+            gs_obj["5p_UTR_start"] = 0;
         }
         gs_obj["upstream"] = upstream["1"] - upstream["0"] + 1 + gs_obj["start"];
         let _exon = [];
@@ -102,18 +98,18 @@ function handleResData(data) {
         gs_obj["exon"] = _exon;
     } else {
         if (p3.length != 0) {
-            gs_obj["3p_UTR"] = p3;
-            // gs_obj["3p_UTR_start"] = p3["0"];
+            gs_obj["3p_UTR"] = p3["1"] - p3["0"] + 1;
+            gs_obj["3p_UTR_start"] = p3["0"];
         } else {
-            gs_obj["3p_UTR"] = [];
-            // gs_obj["3p_UTR_start"] = 0;
+            gs_obj["3p_UTR"] = 0;
+            gs_obj["3p_UTR_start"] = 0;
         }
         if (p5.length != 0) {
-            gs_obj["5p_UTR"] = p5;
-            // gs_obj["5p_UTR_start"] = p5["0"];
+            gs_obj["5p_UTR"] = p5["1"] - p5["0"] + 1;
+            gs_obj["5p_UTR_start"] = p5["0"];
         } else {
-            gs_obj["5p_UTR"] = [];
-            // gs_obj["5p_UTR_start"] = 0;
+            gs_obj["5p_UTR"] = 0;
+            gs_obj["5p_UTR_start"] = 0;
         }
         gs_obj["upstream"] = upstream["1"] - upstream["0"] + 1;
         gs_obj["exon"] = exon;

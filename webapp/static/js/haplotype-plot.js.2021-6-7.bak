@@ -70,8 +70,8 @@ function HaplotypeGraph(argsMap) {
             xScaleMax = data[0].end;
         }
         allSampleNames = data[0].name;
-        // utrP5Start = data[0]["5p_UTR_start"];
-        // utrP3Start = data[0]["3p_UTR_start"];
+        utrP5Start = data[0]["5p_UTR_start"];
+        utrP3Start = data[0]["3p_UTR_start"];
     }
 
     // set total pages 
@@ -200,15 +200,10 @@ function HaplotypeGraph(argsMap) {
 
         //绘制5p_UTR
         utrP5 = [];
-        if (data[0]["5p_UTR"].length != 0) {
+        if (data[0]["5p_UTR"] != 0) {
             for (let i = 0; i < sampleNames.length; i++) {
-                let p5Data = data[0]["5p_UTR"];
-                p5Data.forEach(d => {
-                    let innerBind = [d[0], sampleNames[i], gsHeight, d[1] - d[0] + 1];
-                    utrP5.push(innerBind);
-                })
-                // let bind = [utrP5Start, sampleNames[i], gsHeight, data[0]["5p_UTR"]]
-                // utrP5.push(bind);
+                let bind = [utrP5Start, sampleNames[i], gsHeight, data[0]["5p_UTR"]]
+                utrP5.push(bind);
             }
 
             utrP5.forEach(d => {
@@ -220,15 +215,10 @@ function HaplotypeGraph(argsMap) {
 
         //绘制3p_UTR
         utrP3 = [];
-        if (data[0]["3p_UTR"].length != 0) {
+        if (data[0]["3p_UTR"] != 0) {
             for (let i = 0; i < sampleNames.length; i++) {
-                let p3Data = data[0]["3p_UTR"];
-                p3Data.forEach(d => {
-                    let innerBind = [d[0], sampleNames[i], gsHeight, d[1] - d[0] + 1];
-                    utrP3.push(innerBind);
-                })
-                // let bind = [utrP3Start, sampleNames[i], gsHeight, data[0]["3p_UTR"]]
-                // utrP3.push(bind);
+                let bind = [utrP3Start, sampleNames[i], gsHeight, data[0]["3p_UTR"]]
+                utrP3.push(bind);
             }
 
             utrP3.forEach(d => {
